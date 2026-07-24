@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Cumplimiento</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Cumplimiento */
+
+  /* Fila de garantías activas */
+  .garantias{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-top:22px}
+  @media (max-width:1280px){ .garantias{grid-template-columns:repeat(3,1fr)} }
+  @media (max-width:980px){ .garantias{grid-template-columns:1fr 1fr} }
+  @media (max-width:560px){ .garantias{grid-template-columns:1fr} }
+  .garantia{display:flex; flex-direction:column; gap:10px; padding:18px; min-height:158px}
+  .garantia .g-icon{
+    width:38px; height:38px; border-radius:var(--r-sm); background:var(--info-bg); color:var(--teal);
+    display:grid; place-items:center; flex:0 0 auto;
+  }
+  .garantia h3{font-size:14.5px; font-weight:600; line-height:1.3}
+  .garantia p{font-size:13px; color:var(--ink-dim); line-height:1.45}
+  .garantia .chip{align-self:flex-start; margin-top:auto}
+
+  /* Mini reproductor de la locución */
+  .player--mini{padding:5px 12px 5px 5px; gap:10px; margin-top:2px}
+  .player--mini .play{width:44px; height:44px}
+  .player--mini .wave{height:16px}
+  .player--mini .p-label{font-size:12px; font-weight:600; color:var(--teal); white-space:nowrap}
+
+  /* Registro de auditoría */
+  .audit-tools{display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap}
+  .audit-tools .field{margin-bottom:0; gap:5px}
+  .audit-tools .field label{font-size:13px; color:var(--ink-dim); font-weight:600}
+  .audit-tools .input{padding:9px 12px; font-size:13.5px; min-height:44px; width:150px}
+  .table-wrap{overflow-x:auto; margin:0 -6px; padding:0 6px}
+  .table-wrap .table{min-width:760px}
+  .cell-agent{display:flex; align-items:center; gap:9px; font-weight:600; white-space:nowrap}
+  .cell-agent .avatar{width:28px; height:28px}
+  .td-base{font-size:13px; color:var(--ink-dim); white-space:nowrap}
+  .num-serif{font-family:var(--serif); font-style:italic; font-weight:400; font-size:17px; color:var(--teal)}
+
+  /* Documentos */
+  .doc-list{display:flex; flex-direction:column}
+  .doc{display:flex; align-items:center; gap:14px; padding:14px 4px; border-bottom:1px solid var(--line)}
+  .doc:last-child{border-bottom:none}
+  .doc .d-icon{
+    width:38px; height:38px; border-radius:var(--r-sm); background:var(--neutral-bg); color:var(--teal);
+    display:grid; place-items:center; flex:0 0 auto;
+  }
+  .doc .d-body{min-width:0}
+  .doc .d-body strong{font-size:14px; font-weight:600; display:block}
+  .doc .d-body span{font-size:13px; color:var(--ink-dim)}
+  .doc .btn{margin-left:auto; flex:0 0 auto}
+
+  /* Derechos de los pacientes */
+  .rights-card{
+    position:relative; overflow:hidden; display:flex; flex-direction:column; gap:12px;
+    padding:28px 220px 28px 28px; min-height:180px;
+  }
+  .rights-card .mascot{
+    position:absolute; right:-30px; bottom:-52px; width:220px; pointer-events:none;
+    filter:drop-shadow(0 12px 24px rgba(10,31,46,.14));
+  }
+  .rights-card h2{font-size:26px}
+  .rights-card p{font-size:14.5px; color:var(--ink-dim); max-width:560px}
+  .rights-card .plazo{
+    display:inline-flex; align-items:center; gap:8px; align-self:flex-start;
+    background:var(--info-bg); color:var(--info-ink); border-radius:999px;
+    padding:5px 14px; font-size:12.5px; font-weight:600;
+  }
+  .rights-card .btn{align-self:flex-start; margin-top:4px}
+  @media (max-width:980px){
+    .rights-card{padding:22px 22px 120px}
+    .rights-card .mascot{width:170px; right:-26px; bottom:-40px}
+    .audit-tools{width:100%}
+    .audit-tools .input{width:100%}
+    .audit-tools .field{flex:1 1 130px}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Protección de datos</p>
+        <h1>Cumplimiento</h1>
+        <p class="h-sub">Todo lo que tu delegado de protección de datos necesita ver, en un sitio.</p>
+      </div>
+      <span class="chip chip--ok">Todas las garantías activas</span>
+    </header>
+
+    <!-- 1 · Garantías activas -->
+    <section aria-label="Garantías activas">
+      <div class="garantias">
+
+        <article class="card garantia">
+          <span class="g-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+          </span>
+          <h3>Aviso de IA</h3>
+          <p>Tus agentes se presentan siempre como inteligencia artificial, en cada llamada y mensaje.</p>
+          <div class="player player--mini">
+            <button class="play" aria-label="Escuchar la locución del aviso de IA">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5-13-7.5Z"/></svg>
+            </button>
+            <span class="wave" aria-hidden="true"></span>
+            <span class="p-label">Escuchar la locución</span>
+          </div>
+          <span class="chip chip--ok">Activo</span>
+        </article>
+
+        <article class="card garantia">
+          <span class="g-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+          <h3>Grabación informada</h3>
+          <p>Antes de grabar, la persona escucha el aviso y puede pedir hablar con tu equipo.</p>
+          <span class="chip chip--ok">Activa</span>
+        </article>
+
+        <article class="card garantia">
+          <span class="g-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+          </span>
+          <h3>Retención</h3>
+          <p>Las grabaciones y transcripciones se borran solas al cumplirse el plazo que elegiste.</p>
+          <span class="chip chip--ok">90 días configurados</span>
+        </article>
+
+        <article class="card garantia">
+          <span class="g-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="10" r="2.6"/><path d="M7.5 18c.7-2.2 2.4-3.3 4.5-3.3s3.8 1.1 4.5 3.3"/></svg>
+          </span>
+          <h3>Verificación de identidad</h3>
+          <p>Nadie accede a datos de un paciente sin confirmar antes quién es. El DNI se muestra siempre parcial.</p>
+          <span class="chip chip--ok">Activa</span>
+        </article>
+
+        <article class="card garantia">
+          <span class="g-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3h4Z"/><path d="M8 11h8M8 15h8M8 7h4"/></svg>
+          </span>
+          <h3>Registro de acciones</h3>
+          <p>Cada acción de un agente queda anotada con hora, motivo y resultado. Nada se puede editar.</p>
+          <span class="chip chip--ok">Completo</span>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- 2 · Registro de auditoría -->
+    <section class="card card--lg mt-24" aria-label="Registro de auditoría">
+      <div class="card-title" style="flex-wrap:wrap">
+        <span class="k-label">Registro de auditoría</span>
+        <div class="audit-tools">
+          <div class="field">
+            <label for="f-desde">Desde</label>
+            <input class="input" type="date" id="f-desde" value="2026-07-14">
+          </div>
+          <div class="field">
+            <label for="f-hasta">Hasta</label>
+            <input class="input" type="date" id="f-hasta" value="2026-07-21">
+          </div>
+          <button class="btn btn--secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+            Exportar CSV</button>
+          <button class="btn btn--secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+            Exportar PDF</button>
+        </div>
+      </div>
+
+      <div class="banner banner--info" role="note" style="margin-bottom:16px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto; margin-top:1px"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 7.8h.01"/></svg>
+        <span>Este registro no se puede modificar ni borrar. Es tu prueba ante una inspección o una auditoría.</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Fecha y hora</th>
+              <th scope="col">Agente</th>
+              <th scope="col">Acción</th>
+              <th scope="col">Resultado</th>
+              <th scope="col">Base consultada</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="k-time">21/07 · 10:42</span></td>
+              <td><span class="cell-agent"><span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt=""></span>Hugo</span></td>
+              <td>Leyó la ficha de ···4523K para verificar identidad</td>
+              <td><span class="chip chip--ok">Identidad verificada</span></td>
+              <td class="td-base">Ficha del paciente</td>
+            </tr>
+            <tr>
+              <td><span class="k-time">21/07 · 10:31</span></td>
+              <td><span class="cell-agent"><span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>Leo</span></td>
+              <td>Envió recordatorio de revisión a ···8817M por WhatsApp</td>
+              <td><span class="chip chip--ok">Cita confirmada</span></td>
+              <td class="td-base">Agenda de citas</td>
+            </tr>
+            <tr>
+              <td><span class="k-time">21/07 · 10:18</span></td>
+              <td><span class="cell-agent"><span class="avatar"><img src="assets/mascotas/nora-360.webp" alt=""></span>Nora</span></td>
+              <td>Envió seguimiento de un presupuesto pendiente a ···0962L</td>
+              <td><span class="chip chip--ok">Seguimiento hecho</span></td>
+              <td class="td-base">Presupuestos aprobados</td>
+            </tr>
+            <tr>
+              <td><span class="k-time">21/07 · 10:04</span></td>
+              <td><span class="cell-agent"><span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt=""></span>Hugo</span></td>
+              <td>Escaló a persona una llamada con dudas de financiación</td>
+              <td><span class="chip chip--warn">Escalado al equipo</span></td>
+              <td class="td-base">Sin datos consultados</td>
+            </tr>
+            <tr>
+              <td><span class="k-time">21/07 · 09:47</span></td>
+              <td><span class="cell-agent"><span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>Leo</span></td>
+              <td>Cubrió la cancelación de hoy a las 12:30 con ···2210F desde la lista de espera</td>
+              <td><span class="chip chip--ok">Cita creada</span></td>
+              <td class="td-base">Agenda de citas</td>
+            </tr>
+            <tr>
+              <td><span class="k-time">20/07 · 18:05</span></td>
+              <td><span class="cell-agent"><span class="avatar"><img src="assets/mascotas/olmo-360.webp" alt=""></span>Olmo</span></td>
+              <td>Preparó el resumen del día y lo envió a Marta</td>
+              <td><span class="chip chip--info">Informe enviado</span></td>
+              <td class="td-base">Registro de actividad</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted mt-16" style="font-size:13px">Mostrando 6 de <b class="num-serif">1.284</b> acciones registradas entre el 14 y el 21 de julio. La exportación incluye el periodo completo que elijas.</p>
+    </section>
+
+    <!-- 3 · Consentimientos y documentos -->
+    <div class="grid-2 mt-24">
+
+      <section class="card card--lg" aria-label="Consentimientos">
+        <div class="card-title">
+          <span class="k-label">Consentimientos</span>
+          <a class="btn btn--ghost btn--sm" href="#">Ver todos</a>
+        </div>
+        <div class="table-wrap">
+          <table class="table" style="min-width:520px">
+            <thead>
+              <tr>
+                <th scope="col">Paciente</th>
+                <th scope="col">Canal</th>
+                <th scope="col">Finalidad</th>
+                <th scope="col">Fecha</th>
+                <th scope="col">Prueba</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>M. Robles</strong> <span class="muted">···3306B</span></td>
+                <td>WhatsApp</td>
+                <td>Recordatorios</td>
+                <td><span class="k-time">18/07/2026</span></td>
+                <td><span class="chip chip--ok">Con prueba</span></td>
+              </tr>
+              <tr>
+                <td><strong>J. Ortega</strong> <span class="muted">···0962L</span></td>
+                <td>WhatsApp</td>
+                <td>Recordatorios</td>
+                <td><span class="k-time">15/07/2026</span></td>
+                <td><span class="chip chip--ok">Con prueba</span></td>
+              </tr>
+              <tr>
+                <td><strong>A. Ferreiro</strong> <span class="muted">···8817M</span></td>
+                <td>WhatsApp</td>
+                <td>Recordatorios</td>
+                <td><span class="k-time">11/07/2026</span></td>
+                <td><span class="chip chip--ok">Con prueba</span></td>
+              </tr>
+              <tr>
+                <td><strong>C. Vidal</strong> <span class="muted">···2210F</span></td>
+                <td>WhatsApp</td>
+                <td>Recordatorios</td>
+                <td><span class="k-time">08/07/2026</span></td>
+                <td><span class="chip chip--ok">Con prueba</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted mt-16" style="font-size:13px">Guardamos el mensaje exacto con el que cada persona dio su permiso, con fecha y hora. Esa es la prueba.</p>
+      </section>
+
+      <section class="card card--lg" aria-label="Documentos">
+        <div class="card-title">
+          <span class="k-label">Documentos</span>
+        </div>
+        <div class="doc-list">
+          <div class="doc">
+            <span class="d-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3h4Z"/><path d="m8.5 14 2 2 4.5-5"/></svg>
+            </span>
+            <div class="d-body">
+              <strong>Contrato de encargo (DPA)</strong>
+              <span>Firmado el 12/07/2026 por Clínica Dental Aurora</span>
+            </div>
+            <button class="btn btn--secondary btn--sm">Descargar</button>
+          </div>
+          <div class="doc">
+            <span class="d-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H4V3h4Z"/><path d="M8 11h8M8 15h8M8 7h4"/></svg>
+            </span>
+            <div class="d-body">
+              <strong>Lista de subencargados</strong>
+              <span>Versión 3 · Te avisamos si cambia</span>
+            </div>
+            <button class="btn btn--secondary btn--sm">Ver</button>
+          </div>
+          <div class="doc">
+            <span class="d-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+            </span>
+            <div class="d-body">
+              <strong>Evaluación de impacto del producto</strong>
+              <span>Cómo protegemos los datos, explicado y documentado</span>
+            </div>
+            <button class="btn btn--secondary btn--sm">Ver</button>
+          </div>
+          <div class="doc">
+            <span class="d-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+            </span>
+            <div class="d-body">
+              <strong>DPD de Kórtex</strong>
+              <span>privacidad@kortexagents.com · Responde en 48 h laborables</span>
+            </div>
+            <a class="btn btn--secondary btn--sm" href="mailto:privacidad@kortexagents.com">Escribir</a>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 4 · Derechos de los pacientes -->
+    <section class="card card--lg rights-card mt-24" aria-label="Derechos de los pacientes">
+      <img class="mascot" src="assets/mascotas/olmo-720.webp" alt="Olmo, agente coordinador">
+      <span class="k-label">Derechos de los pacientes</span>
+      <h2>¿Un paciente pide acceso o borrado de sus datos?</h2>
+      <p>Tienes 1 mes de plazo legal para responder. No hace falta que sepas cómo se hace: te guiamos paso a paso y Olmo te avisa antes de que venza el plazo.</p>
+      <span class="plazo">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        Plazo legal: 1 mes desde la solicitud
+      </span>
+      <button class="btn btn--primary">Atender una solicitud de derechos</button>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

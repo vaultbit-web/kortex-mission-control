@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Agenda, vista Día</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Agenda · vista Día */
+
+  /* Controles de vista: pestañas Día/Semana + Hoy + navegación */
+  .view-controls{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .seg{display:inline-flex; background:var(--white); border:1px solid var(--line); border-radius:999px; padding:4px}
+  .seg button, .seg a{
+    border:none; background:transparent; border-radius:999px; padding:9px 20px;
+    font-size:13.5px; font-weight:600; color:var(--ink-dim); min-height:38px;
+    text-decoration:none; display:inline-flex; align-items:center;
+  }
+  .seg button[aria-pressed="true"]{background:var(--teal); color:var(--white)}
+  .seg a:hover{background:rgba(15,61,53,.06); color:var(--ink)}
+  .day-nav{display:inline-flex; align-items:center; gap:2px; background:var(--white); border:1px solid var(--line); border-radius:999px; padding:4px}
+  .day-nav button{
+    border:none; background:transparent; border-radius:999px; width:38px; height:38px;
+    display:grid; place-items:center; color:var(--ink-dim);
+  }
+  .day-nav button:hover{background:rgba(15,61,53,.06); color:var(--ink)}
+  .day-nav .label{font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--ink); padding:0 12px; white-space:nowrap}
+
+  /* Layout principal: parrilla del día + panel derecho */
+  .agenda-grid{display:grid; grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr); gap:18px; margin-top:22px; align-items:start}
+  @media (max-width:1180px){ .agenda-grid{grid-template-columns:1fr} }
+  .agenda-grid>*{min-width:0}
+
+  /* ---- Parrilla horaria ----
+     Escala: 3px por minuto. Abre de 09:30 a 13:30 y de 16:00 a 20:00.
+     El cierre del mediodía se muestra colapsado (80px) para no dejar
+     un vacío enorme, igual que el fin de semana en la vista de semana. */
+  .daygrid{display:grid; grid-template-columns:62px 1fr; margin-top:20px; padding-bottom:12px}
+  .gutter{position:relative}
+  .gutter .tlabel{
+    position:absolute; right:12px; transform:translateY(-50%);
+    font-family:var(--mono); font-size:11px; color:var(--ink-dim); letter-spacing:.06em;
+  }
+  .track{position:relative; height:1520px; border-left:1px solid var(--line)}
+  .hline{position:absolute; left:0; right:0; border-top:1px solid var(--line)}
+
+  /* Tarjeta de cita colocada a su hora */
+  .apt{
+    position:absolute; left:12px; right:12px;
+    background:var(--white); border:1px solid var(--line); border-radius:var(--r-sm);
+    box-shadow:var(--shadow); padding:10px 13px;
+    display:flex; flex-direction:column; gap:3px; font-size:13px; overflow:hidden;
+  }
+  .apt .apt-top{display:flex; align-items:center; gap:8px}
+  .apt .apt-top .k-time{color:var(--ink)}
+  .apt .who-apt{font-weight:600; font-size:14px; line-height:1.3}
+  .apt .what{color:var(--ink-dim); font-size:12.5px; line-height:1.35}
+  .apt .chip{align-self:flex-start; margin-top:2px}
+  /* Cita creada por un agente: borde teal + avatar del agente */
+  .apt--agent{border:1.5px solid rgba(15,61,53,.45); box-shadow:0 4px 12px rgba(15,61,53,.06)}
+  .apt--agent .avatar{width:26px; height:26px; margin-left:auto}
+  /* Variante para tramos de 30 min: el chip sube a la fila de la hora */
+  .apt--tight .apt-top .chip{align-self:center; margin-top:0}
+  /* Cita propuesta: aún no está en el programa de gestión de la clínica */
+  .apt--propuesta{
+    border:1.5px dashed rgba(15,61,53,.55); background:var(--info-bg); box-shadow:none;
+  }
+  .apt--propuesta .what{color:var(--info-ink)}
+  .apt--propuesta.apt--pasada{border:1.5px solid rgba(15,61,53,.45); background:var(--ok-bg)}
+  /* Cita propuesta ya pasada al programa de la clínica */
+  .queue-item--done{border-left-color:var(--ok-dot); opacity:.92}
+  .queue-item--done .q-body{color:var(--ink-dim)}
+
+  /* Hueco libre: bloque punteado clicable que se ofrece a la lista de espera */
+  .slot{
+    position:absolute; left:12px; right:12px;
+    background:transparent; border:1.5px dashed rgba(15,61,53,.30); border-radius:var(--r-sm);
+    display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px;
+    padding:8px 13px; text-align:left; color:var(--ink-dim); font-family:var(--sans);
+  }
+  .slot:hover{background:rgba(199,230,221,.35); border-color:rgba(15,61,53,.5); color:var(--ink)}
+  .slot .slot-when{font-family:var(--mono); font-size:11px; letter-spacing:.06em}
+  .slot .slot-cta{font-size:13.5px; font-weight:600; color:var(--teal)}
+  .slot--ofrecido{border-style:solid; background:var(--ok-bg); border-color:transparent; cursor:default}
+  .slot--ofrecido .slot-cta{color:var(--ok-ink)}
+
+  /* Franja de cierre del mediodía (colapsada) */
+  .closed-band{
+    position:absolute; left:0; right:0; display:grid; place-items:center;
+    background:repeating-linear-gradient(-45deg, rgba(10,31,46,.045) 0 10px, transparent 10px 20px), var(--neutral-bg);
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .closed-band span{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--ink-dim); background:var(--paper); border:1px solid var(--line);
+    border-radius:999px; padding:5px 14px;
+  }
+
+  /* Línea de la hora actual */
+  .now-line{position:absolute; left:0; right:0; border-top:2px solid var(--teal); z-index:3}
+  .now-line::after{content:""; position:absolute; left:-5px; top:-5px; width:8px; height:8px; border-radius:50%; background:var(--teal)}
+  .now-tag{
+    position:absolute; right:100%; margin-right:8px; transform:translateY(-50%);
+    background:var(--teal); color:var(--white); font-family:var(--mono); font-size:10.5px;
+    letter-spacing:.06em; border-radius:999px; padding:3px 9px; white-space:nowrap;
+  }
+
+  /* Leyenda */
+  .legend{display:flex; gap:20px; flex-wrap:wrap; margin-top:18px; padding-top:16px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-dim)}
+  .legend .item{display:inline-flex; align-items:center; gap:8px}
+  .legend .sw{width:22px; height:14px; border-radius:5px; background:var(--white); border:1px solid var(--line); flex:0 0 auto}
+  .legend .sw--agent{border:1.5px solid rgba(15,61,53,.45)}
+  .legend .sw--slot{border:1.5px dashed rgba(15,61,53,.30); background:transparent}
+  .legend .sw--propuesta{border:1.5px dashed rgba(15,61,53,.55); background:var(--info-bg)}
+  .legend .sw--now{border:none; border-radius:0; height:2px; background:var(--teal); align-self:center}
+
+  /* Panel derecho: el día de un vistazo */
+  .glance{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px}
+  .glance b{font-family:var(--serif); font-style:italic; font-weight:400; font-size:32px; color:var(--teal); line-height:1.05; display:block}
+  .glance .k-label{display:block; margin-top:4px}
+
+  /* Lista de espera resumida */
+  .wait-table td{font-size:13.5px; padding:12px 10px}
+  .wait-table .pref{color:var(--ink-dim); font-size:12.5px; margin-top:1px}
+  .wait-table .btn{white-space:nowrap}
+  /* El panel derecho es estrecho: cada persona se apila en bloque, sin columnas que partan los nombres */
+  .wait-table, .wait-table tbody, .wait-table tr, .wait-table td{display:block; width:100%}
+  .wait-table thead{display:none}
+  .wait-table tr{padding:14px 2px; border-bottom:1px solid var(--line)}
+  .wait-table tr:last-child{border-bottom:none}
+  .wait-table td{padding:0; border:none}
+  .wait-table td[style]{text-align:left !important; margin-top:10px}
+  .wait-table .btn{width:100%; justify-content:center}
+  /* Historial de ofertas automáticas de cada persona de la lista */
+  .wait-table details{margin-top:7px}
+  .wait-table summary{
+    font-size:12.5px; font-weight:600; color:var(--teal); cursor:pointer;
+    display:inline-block; padding:4px 0; min-height:24px;
+  }
+  .wait-table summary::marker{color:var(--teal)}
+  .wait-table .offers{list-style:none; margin:6px 0 2px; padding:8px 12px; background:var(--neutral-bg); border-radius:10px}
+  .wait-table .offers li{
+    font-size:12.5px; color:var(--ink-dim); line-height:1.45;
+    padding:5px 0; border-bottom:1px solid var(--line);
+  }
+  .wait-table .offers li:last-child{border-bottom:none}
+  .wait-table .offers time{font-family:var(--mono); font-size:11px; letter-spacing:.06em; color:var(--ink)}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+
+  /* Nota del relleno automático (mascota grande anclada, asomando) */
+  .leo-note{
+    position:relative; overflow:hidden; background:var(--info-bg); border-radius:var(--r-sm);
+    padding:16px 18px; margin-top:18px; min-height:124px;
+  }
+  .leo-note p{font-size:13px; color:var(--info-ink); max-width:62%; line-height:1.5}
+  .leo-note .k-label{color:var(--info-ink); opacity:.75; display:block; margin-bottom:6px}
+  .leo-note .mascot{
+    position:absolute; right:-30px; bottom:-44px; width:162px; pointer-events:none;
+    filter:drop-shadow(0 10px 20px rgba(10,31,46,.14));
+  }
+
+  @media (max-width:980px){
+    .daygrid{grid-template-columns:50px 1fr}
+    .gutter .tlabel{right:8px}
+    .apt{left:8px; right:8px}
+    .slot{left:8px; right:8px}
+    .now-tag{display:none}
+    .view-controls{width:100%}
+    .glance{gap:12px}
+    .leo-note p{max-width:56%}
+    .leo-note .mascot{width:132px; right:-26px; bottom:-34px}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Agenda · Martes 21 de julio · Hoy</p>
+        <h1>Agenda y citas</h1>
+        <p class="h-sub">Las citas con borde verde las crearon tus agentes. Los bloques punteados en gris son huecos que puedes ofrecer, y los azules son citas propuestas que faltan por pasar a tu programa.</p>
+      </div>
+      <div class="view-controls">
+        <div class="seg" role="group" aria-label="Cambiar vista de la agenda">
+          <button type="button" aria-pressed="true">Día</button>
+          <a href="06-agenda.html">Semana</a>
+        </div>
+        <button type="button" class="btn btn--secondary">Hoy</button>
+        <div class="day-nav" aria-label="Cambiar de día">
+          <button type="button" aria-label="Día anterior, lunes 20 de julio">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+          </button>
+          <span class="label">Martes 21 de julio</span>
+          <button type="button" aria-label="Día siguiente, miércoles 22 de julio">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="agenda-grid">
+
+      <!-- ===== Parrilla del día ===== -->
+      <section class="card card--lg" aria-label="Parrilla horaria del martes 21 de julio">
+        <div class="spread" style="margin-bottom:4px">
+          <span class="k-label">Abierto de 09:30 a 13:30 y de 16:00 a 20:00</span>
+          <span class="k-time">3 citas · 1 propuesta · 4 huecos libres</span>
+        </div>
+
+        <div class="daygrid">
+          <!-- Etiquetas de hora -->
+          <div class="gutter" aria-hidden="true">
+            <span class="tlabel" style="top:0">09:30</span>
+            <span class="tlabel" style="top:90px">10:00</span>
+            <span class="tlabel" style="top:270px">11:00</span>
+            <span class="tlabel" style="top:450px">12:00</span>
+            <span class="tlabel" style="top:630px">13:00</span>
+            <span class="tlabel" style="top:720px">13:30</span>
+            <span class="tlabel" style="top:800px">16:00</span>
+            <span class="tlabel" style="top:980px">17:00</span>
+            <span class="tlabel" style="top:1160px">18:00</span>
+            <span class="tlabel" style="top:1340px">19:00</span>
+            <span class="tlabel" style="top:1520px">20:00</span>
+          </div>
+
+          <!-- Pista horaria -->
+          <div class="track">
+            <!-- Líneas por hora -->
+            <div class="hline" style="top:0" aria-hidden="true"></div>
+            <div class="hline" style="top:90px" aria-hidden="true"></div>
+            <div class="hline" style="top:270px" aria-hidden="true"></div>
+            <div class="hline" style="top:450px" aria-hidden="true"></div>
+            <div class="hline" style="top:630px" aria-hidden="true"></div>
+            <div class="hline" style="top:980px" aria-hidden="true"></div>
+            <div class="hline" style="top:1160px" aria-hidden="true"></div>
+            <div class="hline" style="top:1340px" aria-hidden="true"></div>
+            <div class="hline" style="top:1520px" aria-hidden="true"></div>
+
+            <!-- Cierre del mediodía: 13:30 a 16:00 -->
+            <div class="closed-band" style="top:720px; height:80px" role="note" aria-label="La clínica cierra al mediodía, de 13:30 a 16:00">
+              <span>Cerrado mediodía · 13:30 a 16:00</span>
+            </div>
+
+            <!-- 10:00 · Álvaro Peña · creada por Hugo -->
+            <article class="apt apt--agent" style="top:90px; height:180px" aria-label="Cita de 10:00 a 11:00. Álvaro Peña, primera visita de valoración. La creó Hugo">
+              <div class="apt-top">
+                <span class="k-time">10:00 · 11:00</span>
+                <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt=""></span>
+              </div>
+              <p class="who-apt">Álvaro Peña</p>
+              <p class="what">Primera visita de valoración</p>
+              <span class="chip chip--info">La creó Hugo</span>
+            </article>
+
+            <!-- Hueco libre 11:30 a 12:30 -->
+            <button type="button" class="slot" style="top:360px; height:180px" onclick="ofrecerHueco(this)" aria-label="Hueco libre de 11:30 a 12:30. Ofrecerlo a la lista de espera">
+              <span class="slot-when">11:30 · 12:30 · Hueco libre</span>
+              <span class="slot-cta">+ Ofrecer a la lista de espera</span>
+            </button>
+
+            <!-- 12:30 · Rocío Márquez · creada por Leo, hueco recuperado -->
+            <article class="apt apt--agent apt--tight" style="top:540px; height:90px" aria-label="Cita de 12:30 a 13:00. Rocío Márquez, higiene dental. La creó Leo al recuperar un hueco">
+              <div class="apt-top">
+                <span class="k-time">12:30 · 13:00</span>
+                <span class="chip chip--ok">Hueco recuperado</span>
+                <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>
+              </div>
+              <p class="who-apt">Rocío Márquez</p>
+              <p class="what">Higiene dental</p>
+            </article>
+
+            <!-- Hueco libre 13:00 a 13:30 -->
+            <button type="button" class="slot" style="top:630px; height:90px" onclick="ofrecerHueco(this)" aria-label="Hueco libre de 13:00 a 13:30. Ofrecerlo a la lista de espera">
+              <span class="slot-when">13:00 · 13:30 · Hueco libre</span>
+              <span class="slot-cta">+ Ofrecer a la lista de espera</span>
+            </button>
+
+            <!-- Hueco libre 16:00 a 17:00 -->
+            <button type="button" class="slot" style="top:800px; height:180px" onclick="ofrecerHueco(this)" aria-label="Hueco libre de 16:00 a 17:00. Ofrecerlo a la lista de espera">
+              <span class="slot-when">16:00 · 17:00 · Hueco libre</span>
+              <span class="slot-cta">+ Ofrecer a la lista de espera</span>
+            </button>
+
+            <!-- 17:00 · Daniela Soler · creada por tu equipo -->
+            <article class="apt" style="top:980px; height:135px" aria-label="Cita de 17:00 a 17:45. Daniela Soler, ortodoncia, revisión mensual. La creó tu equipo">
+              <div class="apt-top"><span class="k-time">17:00 · 17:45</span></div>
+              <p class="who-apt">Daniela Soler</p>
+              <p class="what">Ortodoncia, revisión mensual</p>
+              <span class="chip chip--neutral">La creó tu equipo</span>
+            </article>
+
+            <!-- Hueco libre 18:30 a 19:30 -->
+            <button type="button" class="slot" style="top:1250px; height:180px" onclick="ofrecerHueco(this)" aria-label="Hueco libre de 18:30 a 19:30. Ofrecerlo a la lista de espera">
+              <span class="slot-when">18:30 · 19:30 · Hueco libre</span>
+              <span class="slot-cta">+ Ofrecer a la lista de espera</span>
+            </button>
+
+            <!-- 19:30 · Cita propuesta por Hugo, aún sin pasar al programa de la clínica -->
+            <article class="apt apt--propuesta apt--tight" id="propuesta-hoy" style="top:1430px; height:90px" aria-label="Cita propuesta de 19:30 a 20:00. Rubén Tejero, primera visita. La propone Hugo y falta pasarla a tu programa de gestión">
+              <div class="apt-top">
+                <span class="k-time">19:30 · 20:00</span>
+                <span class="chip chip--info">Propuesta por Hugo</span>
+                <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt=""></span>
+              </div>
+              <p class="who-apt">Rubén Tejero</p>
+              <p class="what">Primera visita · Falta pasarla a tu programa</p>
+            </article>
+
+            <!-- Hora actual: 10:47 -->
+            <div class="now-line" style="top:231px" role="note" aria-label="Ahora son las 10:47">
+              <span class="now-tag">10:47</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leyenda -->
+        <div class="legend" aria-label="Leyenda de la parrilla">
+          <span class="item"><span class="sw sw--agent" aria-hidden="true"></span> Cita creada por un agente (con su avatar)</span>
+          <span class="item"><span class="sw" aria-hidden="true"></span> Cita creada por tu equipo</span>
+          <span class="item"><span class="sw sw--propuesta" aria-hidden="true"></span> Cita propuesta, falta pasarla a tu programa</span>
+          <span class="item"><span class="sw sw--slot" aria-hidden="true"></span> Hueco libre que puedes ofrecer</span>
+          <span class="item"><span class="sw sw--now" aria-hidden="true"></span> Hora actual</span>
+        </div>
+      </section>
+
+      <!-- ===== Panel derecho ===== -->
+      <div>
+
+        <!-- El día de un vistazo -->
+        <section class="card card--lg" aria-label="El día de un vistazo">
+          <div class="card-title">
+            <span class="k-label">El día de un vistazo</span>
+            <span class="k-time">Martes 21</span>
+          </div>
+          <div class="glance">
+            <div><b>3</b><span class="k-label">Citas hoy</span></div>
+            <div><b>2</b><span class="k-label">Creadas por agentes</span></div>
+            <div><b>4</b><span class="k-label">Huecos libres</span></div>
+            <div><b>43%</b><span class="k-label">Ocupación</span></div>
+          </div>
+          <div class="bar" role="progressbar" aria-valuenow="43" aria-valuemin="0" aria-valuemax="100" aria-label="Ocupación del día"><i style="width:43%"></i></div>
+          <div class="bar-meta"><span>3 de 7 tramos del día con cita</span><span><strong>43%</strong></span></div>
+          <p class="muted" style="font-size:13px; margin-top:12px">Hay además <strong>1 cita propuesta</strong> a las 19:30, pendiente de que la pases a tu programa.</p>
+        </section>
+
+        <!-- Citas propuestas de hoy -->
+        <section class="card card--lg mt-16" aria-label="Citas propuestas pendientes de pasar al programa de gestión">
+          <div class="card-title">
+            <span class="k-label">Citas propuestas de hoy</span>
+            <span class="chip chip--info" id="contador-propuestas">1 por pasar</span>
+          </div>
+          <p class="muted" style="font-size:13px; margin-bottom:14px">Tu programa de gestión no tiene conexión directa, así que estas citas las pasa tu equipo a mano. Cuando lo hagas, márcalo aquí y el ciclo queda cerrado.</p>
+
+          <div class="queue-item queue-item--task" id="propuesta-1" style="margin-bottom:0">
+            <div class="q-head">
+              <span class="k-time">10:12</span>
+              <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt=""></span>
+              <strong>Hugo</strong>
+            </div>
+            <p class="q-body">Acordó con <strong>Rubén Tejero</strong> (628 411 906 · ficha ···6134J) una primera visita <strong>hoy a las 19:30</strong> (Dra. Peña · Gabinete 1). Falta pasarla a tu programa de gestión.</p>
+            <div class="q-actions">
+              <button class="btn btn--primary btn--sm" type="button" onclick="marcarPasada('propuesta-1', this)">Ya la he pasado a mi programa</button>
+              <a class="btn btn--ghost btn--sm" href="03-conversacion.html">Ver la conversación</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Lista de espera -->
+        <section class="card card--lg mt-16" aria-label="Lista de espera">
+          <div class="card-title">
+            <span class="k-label">Lista de espera</span>
+            <span class="k-time">3 personas</span>
+          </div>
+          <p class="muted" style="font-size:13px; margin-bottom:6px">Tienes 4 huecos libres hoy. Puedes ofrecérselos tú a quien encaje.</p>
+          <div style="overflow-x:auto">
+            <table class="table wait-table">
+              <thead>
+                <tr>
+                  <th scope="col">Persona</th>
+                  <th scope="col"><span class="sr-only">Acción</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Pablo Herrero</strong><div class="pref">Empaste · Tardes desde las 17:00</div>
+                    <details>
+                      <summary>Ver ofertas que ya le hicimos (2)</summary>
+                      <ul class="offers">
+                        <li><time>Lun 20 · 17:12</time> · Leo le ofreció un hueco del jueves por WhatsApp. Sin respuesta todavía.</li>
+                        <li><time>Jue 16 · 11:40</time> · Leo le ofreció un hueco del viernes por la mañana. No le encajaba el horario.</li>
+                      </ul>
+                    </details>
+                  </td>
+                  <td style="text-align:right"><button type="button" class="btn btn--secondary btn--sm" onclick="ofrecerPersona('Pablo Herrero')">Ofrecerle un hueco de hoy</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Sara Miralles</strong><div class="pref">Revisión anual · Cualquier hora</div>
+                    <details>
+                      <summary>Ver ofertas que ya le hicimos (1)</summary>
+                      <ul class="offers">
+                        <li><time>Vie 17 · 09:05</time> · Leo la llamó para ofrecerle un hueco del lunes. No cogió el teléfono y le dejó el aviso por WhatsApp.</li>
+                      </ul>
+                    </details>
+                  </td>
+                  <td style="text-align:right"><button type="button" class="btn btn--secondary btn--sm" onclick="ofrecerPersona('Sara Miralles')">Ofrecerle un hueco de hoy</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Íñigo Bastida</strong><div class="pref">Ortodoncia, primera visita · Viernes por la mañana</div>
+                    <details>
+                      <summary>Ver ofertas que ya le hicimos (0)</summary>
+                      <ul class="offers">
+                        <li>Entró en la lista el lunes 20. Aún no ha salido ningún hueco que encaje con su preferencia.</li>
+                      </ul>
+                    </details>
+                  </td>
+                  <td style="text-align:right"><button type="button" class="btn btn--secondary btn--sm" onclick="ofrecerPersona('Íñigo Bastida')">Ofrecerle un hueco de hoy</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Cómo funciona el relleno automático -->
+          <div class="leo-note" role="note" aria-label="Cómo funciona el relleno automático de huecos">
+            <span class="k-label">Relleno automático</span>
+            <p>Si alguien cancela hoy, <strong>Leo</strong> ofrece el hueco a esta lista por orden de preferencia, por WhatsApp o con una llamada, y te lo cuenta en la actividad. Tú solo lo ves aparecer en la agenda.</p>
+            <img class="mascot" src="assets/mascotas/leo-720.webp" alt="Leo, agente de revisiones y reactivación">
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+
+<script>
+  // Ofrecer un hueco concreto de la parrilla a la lista de espera.
+  function ofrecerHueco(btn){
+    if(btn.classList.contains('slot--ofrecido')) return;
+    btn.classList.add('slot--ofrecido');
+    btn.querySelector('.slot-cta').textContent = 'Ofrecido a la lista de espera';
+    btn.setAttribute('aria-disabled', 'true');
+    btn.setAttribute('aria-label', btn.getAttribute('aria-label').replace(/Ofrecerlo a la lista de espera/, 'Ya ofrecido a la lista de espera'));
+    aviso('Hecho. Leo ofrece este hueco a la lista de espera y te avisa si alguien lo acepta.');
+  }
+  // Cierra el ciclo de una cita propuesta: el equipo confirma que ya está en su programa.
+  function marcarPasada(id, btn){
+    var item = document.getElementById(id);
+    item.classList.remove('queue-item--task');
+    item.classList.add('queue-item--done');
+    item.querySelector('.q-actions').innerHTML =
+      '<span class="chip chip--ok">Pasada a tu programa</span>' +
+      '<a class="btn btn--ghost btn--sm" href="03-conversacion.html">Ver la conversación</a>';
+    var contador = document.getElementById('contador-propuestas');
+    if(contador){ contador.className = 'chip chip--ok'; contador.textContent = 'Todo pasado'; }
+    var enParrilla = document.getElementById('propuesta-hoy');
+    if(enParrilla){
+      enParrilla.classList.add('apt--pasada');
+      enParrilla.querySelector('.chip').className = 'chip chip--ok';
+      enParrilla.querySelector('.chip').textContent = 'Ya en tu programa';
+      enParrilla.querySelector('.what').textContent = 'Primera visita · La consiguió Hugo';
+    }
+    aviso('Hecho. Cita marcada como pasada a tu programa.');
+  }
+  // Ofrecer los huecos de hoy a una persona concreta de la lista.
+  function ofrecerPersona(nombre){
+    aviso('Hecho. Leo escribe a ' + nombre + ' con los huecos libres de hoy que encajan con su preferencia.');
+  }
+  function aviso(texto){
+    var previo = document.querySelector('.toast');
+    if(previo) previo.remove();
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.setAttribute('role', 'status');
+    toast.textContent = texto;
+    document.body.appendChild(toast);
+    setTimeout(function(){ toast.remove(); }, 3600);
+  }
+</script>
+</body>
+</html>

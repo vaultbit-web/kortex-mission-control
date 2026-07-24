@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Familias autorizadas</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Familias autorizadas (residencias) */
+
+  /* Buscador */
+  .search-row{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px}
+  .search-box{position:relative; flex:1; min-width:240px; max-width:420px}
+  .search-box svg{position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--ink-dim); pointer-events:none}
+  .search-box .input{padding-left:44px}
+  .search-meta{font-size:14.5px; color:var(--ink-dim)}
+
+  /* Tabla de autorizados */
+  .table-wrap{overflow-x:auto; border-radius:var(--r-md)}
+  .auth-table{min-width:920px}
+  .auth-table td.resident{vertical-align:top; border-right:1px dashed var(--line); min-width:180px}
+  .auth-table td.resident .r-name{font-weight:600; font-size:15px}
+  .auth-table td.resident .r-dni{font-family:var(--mono); font-size:11.5px; color:var(--ink-dim); letter-spacing:.06em; margin-top:3px}
+  .auth-table td.resident .r-count{font-size:13px; color:var(--ink-dim); margin-top:6px}
+  .contact-name{font-weight:600; font-size:15px}
+  .contact-rel{font-size:13.5px; color:var(--ink-dim); margin-top:2px}
+  .contact-tel{font-family:var(--mono); font-size:12.5px; color:var(--ink-dim); letter-spacing:.04em; margin-top:3px}
+  .scope{font-size:14.5px}
+  .scope .note{display:block; font-size:13px; color:var(--ink-dim); margin-top:2px}
+  .chip--wrap{white-space:normal; text-align:left; line-height:1.35; padding-top:6px; padding-bottom:6px}
+  .doc-link{display:inline-flex; align-items:center; gap:6px; font-size:14px; margin-top:8px; min-height:44px}
+  .row-alert td{background:linear-gradient(90deg, rgba(194,74,63,.05), transparent 55%)}
+  .cell-alert{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+
+  /* Cómo verifica Celia */
+  .celia-panel{position:relative; overflow:hidden; padding-right:250px}
+  .celia-panel .mascot{
+    position:absolute; right:-34px; bottom:-70px; width:290px; pointer-events:none;
+    filter:drop-shadow(0 14px 28px rgba(10,31,46,.16));
+  }
+  .verify-steps{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px}
+  .verify-step{background:var(--white); border:1px solid var(--line); border-radius:var(--r-sm); padding:18px}
+  .verify-step .num{font-family:var(--mono); font-size:11px; letter-spacing:.2em; color:var(--teal); display:block; margin-bottom:8px}
+  .verify-step h3{font-family:var(--serif); font-weight:400; font-size:19px; margin-bottom:6px}
+  .verify-step p{font-size:15px; color:var(--ink-dim); line-height:1.5}
+  @media (max-width:980px){
+    .celia-panel{padding-right:22px; padding-bottom:150px}
+    .celia-panel .mascot{width:210px; right:-30px; bottom:-52px}
+    .verify-steps{grid-template-columns:1fr}
+  }
+
+  /* Modal estático de especificación */
+  .modal-stage{
+    background:rgba(10,31,46,.35); border-radius:var(--r-lg);
+    padding:44px 20px; display:grid; place-items:center; margin-top:14px;
+  }
+  .modal--auth{max-width:560px; width:100%}
+  .radio-cards{display:grid; gap:10px}
+  .radio-card{
+    display:flex; gap:12px; align-items:flex-start; border:1px solid var(--line);
+    background:var(--white); border-radius:var(--r-sm); padding:14px 16px; cursor:pointer;
+  }
+  .radio-card input{margin-top:4px; width:18px; height:18px; accent-color:var(--teal); flex:0 0 auto}
+  .radio-card{min-height:44px}
+  .radio-card .rc-title{font-weight:600; font-size:15px}
+  .radio-card .rc-desc{font-size:13.5px; color:var(--ink-dim); margin-top:2px}
+  .radio-card:has(input:checked){border-color:var(--teal); box-shadow:0 0 0 3px rgba(15,61,53,.10)}
+  .field-label{font-size:13.5px; font-weight:600}
+  .upload-box{
+    display:block; width:100%; min-height:44px; font-family:var(--sans);
+    border:1.5px dashed rgba(15,61,53,.35); border-radius:var(--r-sm); background:rgba(15,61,53,.04);
+    padding:18px; text-align:center; font-size:14px; color:var(--ink-dim); line-height:1.5;
+  }
+  .upload-box:hover{background:rgba(15,61,53,.08)}
+  .upload-box strong{color:var(--teal); font-size:14.5px}
+
+  /* Registro de cambios */
+  .changelog .feed-item{grid-template-columns:88px 34px 1fr auto}
+  @media (max-width:980px){
+    .changelog .feed-item{grid-template-columns:88px 30px 1fr}
+  }
+</style>
+</head>
+<body data-vertical="residencias">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="18-inicio-residencias.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="19-autorizados-residencias.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5"/><path d="m14.5 10 2.2 2.2L21 7.9"/></svg>
+        Familias autorizadas</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">CR</div>
+      <div>
+        <div class="clinic">Residencia Los Almendros</div>
+        <div class="who">Carmen Ruiz · Directora</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Martes, 21 de julio · 10:47</p>
+        <h1>Familias autorizadas</h1>
+        <p class="h-sub">Quién puede saber qué de cada residente. Celia solo informa a quien está en esta lista, y solo de lo que el personal aprueba.</p>
+      </div>
+      <button class="btn btn--primary" type="button">Añadir contacto autorizado</button>
+    </header>
+
+    <!-- Banner legal fijo -->
+    <div class="banner banner--info" role="note" aria-label="Garantía sobre datos de salud">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto; margin-top:1px"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+      <p><strong>Los datos de salud los comunica SIEMPRE el personal.</strong> Celia comparte únicamente el día a día aprobado: actividades, menús, visitas y logística.</p>
+    </div>
+
+    <!-- Estado de las autorizaciones (cifras serif itálica) -->
+    <section class="kpi-row mt-24" aria-label="Estado de las autorizaciones">
+      <div class="kpi"><b>42</b><span class="k-label">Residentes con ficha</span><span class="delta">Todos con nivel de información definido</span></div>
+      <div class="kpi"><b>61</b><span class="k-label">Personas autorizadas</span><span class="delta up">Todas con firma archivada</span></div>
+      <div class="kpi"><b>1</b><span class="k-label">Autorización por renovar</span><span class="delta down">Caduca el 31 de julio</span></div>
+      <div class="kpi"><b>1</b><span class="k-label">Residente sin autorizados</span><span class="delta down">Celia no dará ninguna información</span></div>
+    </section>
+
+    <!-- Buscador + tabla -->
+    <section class="card card--lg mt-24" aria-label="Residentes y contactos autorizados">
+      <div class="card-title">
+        <span class="k-label">Residentes y sus autorizados</span>
+        <span class="k-time">Última revisión general: 02/07/2026</span>
+      </div>
+
+      <div class="search-row" role="search">
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+          <input class="input" type="search" placeholder="Buscar residente por nombre o documento" aria-label="Buscar residente por nombre o documento">
+        </div>
+        <span class="search-meta">4 residentes en esta vista · 42 en total</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table auth-table">
+          <caption class="k-label" style="text-align:left; padding:0 12px 10px">Matriz de autorizados por residente</caption>
+          <thead>
+            <tr>
+              <th scope="col">Residente</th>
+              <th scope="col">Contacto y relación</th>
+              <th scope="col">Qué puede saber</th>
+              <th scope="col">Verificación</th>
+              <th scope="col">Última revisión</th>
+              <th scope="col"><span class="sr-only" style="position:absolute; clip:rect(0 0 0 0)">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Residente 1: dos autorizados -->
+            <tr>
+              <td class="resident" rowspan="2">
+                <div class="r-name">Pilar Navarro</div>
+                <div class="r-dni">DNI ···8841C</div>
+                <div class="r-count">2 personas autorizadas</div>
+              </td>
+              <td>
+                <div class="contact-name">María Navarro</div>
+                <div class="contact-rel">Hija</div>
+                <div class="contact-tel">611 782 340</div>
+              </td>
+              <td class="scope">Día a día + visitas<span class="note">Actividades, menús, visitas y logística</span></td>
+              <td><span class="chip chip--ok">Verificada por teléfono registrado</span></td>
+              <td><span class="k-time">02/07/2026</span></td>
+              <td><button class="btn btn--ghost btn--sm" type="button" aria-label="Editar la autorización de María Navarro">Editar</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="contact-name">Jorge Navarro</div>
+                <div class="contact-rel">Hijo</div>
+                <div class="contact-tel">617 402 218</div>
+              </td>
+              <td class="scope">Solo visitas y logística<span class="note">Horarios de visita, recados y entregas</span></td>
+              <td><span class="chip chip--ok">Verificado por teléfono registrado</span></td>
+              <td><span class="k-time">02/07/2026</span></td>
+              <td><button class="btn btn--ghost btn--sm" type="button" aria-label="Editar la autorización de Jorge Navarro">Editar</button></td>
+            </tr>
+
+            <!-- Residente 2: autorización que caduca -->
+            <tr>
+              <td class="resident">
+                <div class="r-name">Antonio Ferrer</div>
+                <div class="r-dni">DNI ···2210F</div>
+                <div class="r-count">1 persona autorizada</div>
+              </td>
+              <td>
+                <div class="contact-name">Isabel Ferrer</div>
+                <div class="contact-rel">Sobrina · única autorizada</div>
+                <div class="contact-tel">622 918 405</div>
+              </td>
+              <td class="scope">Día a día + visitas<span class="note">Actividades, menús, visitas y logística</span></td>
+              <td><span class="chip chip--warn chip--wrap">Autorización caduca el 31 de julio</span></td>
+              <td><span class="k-time">05/02/2026</span></td>
+              <td><button class="btn btn--primary btn--sm" type="button" aria-label="Renovar la autorización de Isabel Ferrer">Renovar</button></td>
+            </tr>
+
+            <!-- Residente 3: sin autorizados -->
+            <tr class="row-alert">
+              <td class="resident">
+                <div class="r-name">Dolores Prieto</div>
+                <div class="r-dni">DNI ···5623A</div>
+                <div class="r-count">Sin autorizados</div>
+              </td>
+              <td colspan="5">
+                <div class="cell-alert">
+                  <span class="chip chip--urgent chip--wrap">Nadie autorizado: Celia no confirma ni que reside aquí</span>
+                  <button class="btn btn--secondary btn--sm" type="button" aria-label="Añadir un contacto autorizado para Dolores Prieto">Añadir autorizado</button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Residente 4: tutela -->
+            <tr>
+              <td class="resident">
+                <div class="r-name">Ramón Iglesias</div>
+                <div class="r-dni">DNI ···9917B</div>
+                <div class="r-count">Representación legal</div>
+              </td>
+              <td>
+                <div class="contact-name">Beatriz Soler</div>
+                <div class="contact-rel">Representante legal</div>
+                <div class="contact-tel">913 448 062</div>
+              </td>
+              <td class="scope">Día a día + visitas<span class="note">Según lo que decida su representante</span></td>
+              <td>
+                <span class="chip chip--info chip--wrap">Tutela: decide su representante</span>
+                <a class="doc-link" href="08-cumplimiento.html">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/></svg>
+                  Ver documento acreditativo</a>
+              </td>
+              <td><span class="k-time">14/05/2026</span></td>
+              <td><button class="btn btn--ghost btn--sm" type="button" aria-label="Editar la autorización de Beatriz Soler">Editar</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Cómo verifica Celia -->
+    <section class="card card--lg celia-panel mt-24" aria-label="Cómo verifica Celia a quien llama">
+      <span class="k-label">La garantía en cada llamada</span>
+      <h2 class="mt-8">Cómo verifica Celia a quien llama</h2>
+      <p class="muted mt-8" style="font-size:16px; max-width:640px">Antes de contar nada, Celia comprueba que quien llama está en esta lista. Si no lo está, no confirma ni que la persona reside aquí.</p>
+      <div class="verify-steps">
+        <div class="verify-step">
+          <span class="num">Paso 01</span>
+          <h3>Pregunta y comprueba</h3>
+          <p>Celia se presenta como inteligencia artificial y pide el nombre completo de quien llama y dos datos que constan en la ficha del residente.</p>
+        </div>
+        <div class="verify-step">
+          <span class="num">Paso 02</span>
+          <h3>Si no cuadra, no informa</h3>
+          <p>No discute ni da pistas. Se despide con amabilidad y devuelve la llamada al número registrado del contacto autorizado.</p>
+        </div>
+        <div class="verify-step">
+          <span class="num">Paso 03</span>
+          <h3>Todo queda registrado</h3>
+          <p>Cada intento, verificado o no, queda anotado con fecha y hora. <a href="08-cumplimiento.html">Ver el registro en Cumplimiento</a></p>
+        </div>
+      </div>
+      <img class="mascot" src="assets/mascotas/celia-720.webp" alt="Celia, agente de atención a familias">
+    </section>
+
+    <!-- Modal estático: Añadir contacto autorizado -->
+    <section class="mt-32" aria-label="Especificación del formulario para añadir un contacto autorizado">
+      <span class="k-label">Especificación de componente · Modal</span>
+      <div class="modal-stage">
+        <div class="modal modal--auth" role="group" aria-labelledby="modal-auth-title">
+          <h3 id="modal-auth-title">Añadir contacto autorizado</h3>
+          <p>La autorización necesita la firma del residente o de su representante. Sin firma, Celia no informará a esta persona.</p>
+
+          <div class="field">
+            <label for="f-nombre">Nombre y apellidos</label>
+            <input class="input" id="f-nombre" type="text" value="Isabel Ferrer Campos">
+          </div>
+          <div class="field">
+            <label for="f-tel">Teléfono de contacto</label>
+            <input class="input" id="f-tel" type="tel" value="622 918 405">
+            <span class="hint">Será el único número al que Celia devuelve las llamadas de esta persona.</span>
+          </div>
+          <div class="field">
+            <label for="f-rel">Relación con el residente</label>
+            <select class="input" id="f-rel">
+              <option>Hija o hijo</option>
+              <option selected>Sobrina o sobrino</option>
+              <option>Cónyuge o pareja</option>
+              <option>Representante legal</option>
+              <option>Otro familiar o allegado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-res">Residente</label>
+            <select class="input" id="f-res">
+              <option selected>Antonio Ferrer · DNI ···2210F</option>
+              <option>Pilar Navarro · DNI ···8841C</option>
+              <option>Dolores Prieto · DNI ···5623A</option>
+              <option>Ramón Iglesias · DNI ···9917B</option>
+            </select>
+          </div>
+
+          <fieldset class="field" style="border:none">
+            <legend style="font-size:13.5px; font-weight:600; margin-bottom:8px">Nivel de información</legend>
+            <div class="radio-cards">
+              <label class="radio-card">
+                <input type="radio" name="nivel" checked>
+                <span>
+                  <span class="rc-title">Solo visitas y logística</span>
+                  <span class="rc-desc" style="display:block">Horarios de visita, recados, entregas de ropa y objetos.</span>
+                </span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="nivel">
+                <span>
+                  <span class="rc-title">Día a día aprobado por el personal</span>
+                  <span class="rc-desc" style="display:block">Actividades, menús, visitas y logística. Nunca datos de salud.</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <span class="field-label" id="f-firma-label">Firma del residente o de su representante</span>
+            <button class="upload-box" type="button" aria-describedby="f-firma-label">
+              <strong>Adjunta la hoja de autorización firmada</strong><br>
+              Foto o documento. Puedes descargar la plantilla para imprimir.
+            </button>
+          </div>
+
+          <div class="banner banner--info" role="note" style="margin-bottom:20px">
+            <p style="font-size:14px"><strong>Por qué pedimos esto:</strong> la ley de protección de datos exige que sea el residente, o quien le representa, quien decida a quién se informa y de qué. Con esta firma queda constancia de esa decisión y de su alcance, y puedes retirarla cuando quieras.</p>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn--ghost" type="button">Cancelar</button>
+            <button class="btn btn--primary" type="button">Guardar autorización</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Registro de cambios -->
+    <section class="card card--lg mt-24 changelog" aria-label="Registro de llamadas y cambios de autorizaciones">
+      <div class="card-title">
+        <span class="k-label">Registro de llamadas y cambios</span>
+        <a class="btn btn--secondary btn--sm" href="08-cumplimiento.html">Ver registro completo en Cumplimiento</a>
+      </div>
+      <div class="feed">
+        <div class="feed-item">
+          <span class="k-time">21/07 · 10:21</span>
+          <span class="avatar"><img src="assets/mascotas/celia-360.webp" alt=""></span>
+          <p class="txt"><span class="who">Celia</span> · María Navarro, autorizada de ···8841C, preguntó por la medicación de su madre <span class="arrow">→</span> Celia no responde a eso: llamada pasada a enfermería con el motivo anotado</p>
+          <span class="chip chip--warn">Escalado al personal</span>
+        </div>
+        <div class="feed-item">
+          <span class="k-time">21/07 · 09:12</span>
+          <span class="avatar"><img src="assets/mascotas/celia-360.webp" alt=""></span>
+          <p class="txt"><span class="who">Celia</span> · Llamada de un número no registrado preguntando por ···5623A <span class="arrow">→</span> sin información dada, intento anotado en Cumplimiento</p>
+          <span class="chip chip--warn">Verificación fallida</span>
+        </div>
+        <div class="feed-item">
+          <span class="k-time">02/07 · 12:40</span>
+          <span class="avatar-user" aria-hidden="true" style="width:34px; height:34px; font-size:12px">RC</span>
+          <p class="txt"><span class="who">Rosa (recepción)</span> · Revisión anual de los autorizados de ···8841C <span class="arrow">→</span> María y Jorge confirmados con sus niveles de información</p>
+          <span class="chip chip--ok">Revisión hecha</span>
+        </div>
+        <div class="feed-item">
+          <span class="k-time">14/05 · 11:20</span>
+          <span class="avatar-user" aria-hidden="true" style="width:34px; height:34px; font-size:12px">CR</span>
+          <p class="txt"><span class="who">Carmen (dirección)</span> · Documento de tutela de ···9917B archivado <span class="arrow">→</span> desde hoy decide su representante legal</p>
+          <span class="chip chip--info">Tutela registrada</span>
+        </div>
+        <div class="feed-item">
+          <span class="k-time">05/02 · 10:05</span>
+          <span class="avatar-user" aria-hidden="true" style="width:34px; height:34px; font-size:12px">CR</span>
+          <p class="txt"><span class="who">Carmen (dirección)</span> · Autorización de Isabel Ferrer firmada por el residente ···2210F <span class="arrow">→</span> válida hasta el 31 de julio de 2026</p>
+          <span class="chip chip--ok">Autorización añadida</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="18-inicio-residencias.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+  <a href="19-autorizados-residencias.html" class="active" aria-current="page">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5"/><path d="m14.5 10 2.2 2.2L21 7.9"/></svg>
+    Familias</a>
+</nav>
+</body>
+</html>

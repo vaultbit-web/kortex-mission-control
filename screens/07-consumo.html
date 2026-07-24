@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Consumo y plan</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Consumo y plan */
+  .consumo-grid{display:grid; grid-template-columns:1.45fr 1fr; gap:18px; margin-top:22px; align-items:start}
+  @media (max-width:1080px){ .consumo-grid{grid-template-columns:1fr} }
+
+  /* Barras grandes de franquicia */
+  .big-bar{margin-top:18px}
+  .big-bar .bar{height:14px}
+  .big-bar .bar-meta{font-size:13.5px; align-items:center}
+  .big-bar .bar-meta strong{color:var(--ink); font-family:var(--serif); font-style:italic; font-weight:400; font-size:20px}
+  .pct{font-family:var(--mono); font-size:11px; letter-spacing:.08em; color:var(--ink); background:var(--neutral-bg); border-radius:999px; padding:2px 9px; margin-left:8px}
+
+  .proyeccion{
+    display:flex; gap:12px; align-items:flex-start; margin-top:20px;
+    background:var(--info-bg); color:var(--info-ink); border-radius:var(--r-sm); padding:14px 16px; font-size:14px;
+  }
+  .proyeccion svg{flex:0 0 auto; margin-top:1px}
+
+  /* Historial: gráfica simple de barras CSS, 6 meses */
+  .chart{display:flex; gap:10px; align-items:stretch; margin-top:14px}
+  .chart .month{flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:0}
+  .chart .cols{display:flex; gap:5px; align-items:flex-end; height:120px}
+  .chart .col{width:16px; border-radius:7px 7px 3px 3px; background:var(--teal)}
+  .chart .col--wa{background:var(--info-dot)}
+  .chart .month--now .col{background:repeating-linear-gradient(135deg, var(--teal) 0 5px, rgba(15,61,53,.55) 5px 10px)}
+  .chart .month--now .col--wa{background:repeating-linear-gradient(135deg, var(--info-dot) 0 5px, rgba(78,143,130,.55) 5px 10px)}
+  .chart .m-label{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-dim)}
+  .chart .month--now .m-label{color:var(--teal); font-weight:600}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; font-size:12.5px; color:var(--ink-dim)}
+  .legend span{display:inline-flex; align-items:center; gap:7px}
+  .legend i{width:10px; height:10px; border-radius:3px; background:var(--teal)}
+  .legend i.wa{background:var(--info-dot)}
+
+  /* Topes y avisos: la tarjeta protagonista */
+  .topes-card{
+    border:1px solid rgba(15,61,53,.30); box-shadow:var(--shadow-lift);
+    background:linear-gradient(180deg, var(--white), var(--paper) 60%);
+  }
+  .toggle-row{
+    display:flex; gap:14px; align-items:flex-start; justify-content:space-between;
+    padding:16px 0; border-top:1px solid var(--line); min-height:44px;
+  }
+  .card-title + .toggle-row{border-top:none; padding-top:4px}
+  .toggle-row .t-txt{max-width:78%}
+  .toggle-row .t-title{font-size:15px; font-weight:600}
+  .toggle-row .t-desc{font-size:13.5px; color:var(--ink-dim); margin-top:3px}
+  .toggle-row .toggle{flex:0 0 auto; margin-top:3px; padding:0}
+  .tope-input{position:relative; max-width:210px}
+  .tope-input .input{padding-right:44px; font-family:var(--serif); font-style:italic; font-size:22px}
+  .tope-input .eur{
+    position:absolute; right:16px; top:50%; transform:translateY(-50%);
+    font-family:var(--mono); font-size:13px; color:var(--ink-dim);
+  }
+
+  /* Tu plan */
+  .plan-grid{display:grid; grid-template-columns:1.1fr 1fr; gap:28px; align-items:start}
+  @media (max-width:1080px){ .plan-grid{grid-template-columns:1fr} }
+  .plan-name{font-family:var(--serif); font-size:30px; line-height:1.1}
+  .plan-avatars{display:flex; margin-top:14px}
+  .plan-avatars .avatar{width:46px; height:46px; border:2px solid var(--paper); box-shadow:var(--shadow)}
+  .plan-avatars .avatar + .avatar{margin-left:-10px}
+  .plan-avatars .a-name{font-size:13px; color:var(--ink-dim); align-self:center; margin-left:14px}
+  .mensualidad{
+    margin-top:16px; padding:14px 16px; background:var(--bone); border:1px solid var(--line);
+    border-radius:var(--r-sm); font-size:14px;
+  }
+  .mensualidad strong{color:var(--teal)}
+
+  /* Selector de ampliación (abierto, estático) */
+  .amplia{margin-top:20px; padding:18px; border:1px dashed rgba(15,61,53,.30); border-radius:var(--r-md); background:rgba(15,61,53,.03)}
+  .agent-card--mini{min-height:180px; padding:20px; margin-top:12px}
+  .agent-card--mini .mascot{width:160px; right:-28px; bottom:-36px}
+  .agent-card--mini .name{font-size:24px}
+  .agent-card--mini .mission{font-size:13px; max-width:60%}
+  .agent-card--mini .locked-note{font-size:13px; color:var(--ink); margin-top:auto; max-width:60%}
+
+  .factura-note{font-size:12.5px; color:var(--ink-dim); margin-top:12px}
+  .table .btn{white-space:nowrap}
+
+  @media (max-width:980px){
+    .toggle-row .t-txt{max-width:72%}
+    .chart .col{width:11px}
+    .agent-card--mini .mission,.agent-card--mini .locked-note{max-width:52%}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Consumo y plan</p>
+        <h1>Tu consumo, sin sorpresas</h1>
+        <p class="h-sub">Lo que llevas usado este mes, tus topes de gasto y tu plan actual. Todo en una pantalla.</p>
+      </div>
+      <a class="btn btn--secondary" href="#facturas">Descargar la última factura</a>
+    </header>
+
+    <div class="consumo-grid">
+
+      <!-- ===== Bloque 1 · Tu consumo este mes ===== -->
+      <section class="card card--lg" aria-label="Tu consumo este mes">
+        <div class="card-title">
+          <span class="k-label">Tu consumo este mes</span>
+          <span class="k-time">Del 1 al 31 de julio · Día 21 de 31</span>
+        </div>
+
+        <div class="big-bar">
+          <div class="bar" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100" aria-label="Minutos de voz usados: 385 de 600, un 64 por ciento del plan">
+            <i style="width:64%"></i>
+          </div>
+          <div class="bar-meta">
+            <span>Minutos de voz</span>
+            <span><strong>385</strong> de 600 <span class="pct">64%</span></span>
+          </div>
+        </div>
+
+        <div class="big-bar">
+          <div class="bar" role="progressbar" aria-valuenow="41" aria-valuemin="0" aria-valuemax="100" aria-label="Conversaciones de WhatsApp usadas: 247 de 600, un 41 por ciento del plan">
+            <i style="width:41%"></i>
+          </div>
+          <div class="bar-meta">
+            <span>Conversaciones de WhatsApp</span>
+            <span><strong>247</strong> de 600 <span class="pct">41%</span></span>
+          </div>
+        </div>
+
+        <p class="proyeccion">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/></svg>
+          <span><strong>A este ritmo terminarás el mes en torno a 560 minutos, dentro de tu plan.</strong> Es una estimación con tu uso de los últimos 14 días. Si cambia, te avisamos.</span>
+        </p>
+
+        <div class="mt-24">
+          <div class="spread">
+            <span class="k-label">Historial de consumo</span>
+            <span class="k-time">Últimos 6 meses</span>
+          </div>
+          <div class="chart" role="img" aria-label="Gráfica de barras de los últimos 6 meses. Minutos de voz: febrero 410, marzo 465, abril 380, mayo 520, junio 490 y julio 385 en curso. Conversaciones de WhatsApp: febrero 190, marzo 230, abril 260, mayo 300, junio 280 y julio 247 en curso. Siempre dentro del plan de 600.">
+            <div class="month">
+              <div class="cols"><span class="col" style="height:68%"></span><span class="col col--wa" style="height:32%"></span></div>
+              <span class="m-label">Feb</span>
+            </div>
+            <div class="month">
+              <div class="cols"><span class="col" style="height:78%"></span><span class="col col--wa" style="height:38%"></span></div>
+              <span class="m-label">Mar</span>
+            </div>
+            <div class="month">
+              <div class="cols"><span class="col" style="height:63%"></span><span class="col col--wa" style="height:43%"></span></div>
+              <span class="m-label">Abr</span>
+            </div>
+            <div class="month">
+              <div class="cols"><span class="col" style="height:87%"></span><span class="col col--wa" style="height:50%"></span></div>
+              <span class="m-label">May</span>
+            </div>
+            <div class="month">
+              <div class="cols"><span class="col" style="height:82%"></span><span class="col col--wa" style="height:47%"></span></div>
+              <span class="m-label">Jun</span>
+            </div>
+            <div class="month month--now">
+              <div class="cols"><span class="col" style="height:64%"></span><span class="col col--wa" style="height:41%"></span></div>
+              <span class="m-label">Jul</span>
+            </div>
+          </div>
+          <div class="legend" aria-hidden="true">
+            <span><i></i> Minutos de voz</span>
+            <span><i class="wa"></i> Conversaciones de WhatsApp</span>
+            <span class="muted">Julio aparece rayado porque aún está en curso</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Bloque 2 · Topes y avisos (protagonista) ===== -->
+      <section class="card card--lg topes-card" aria-label="Topes y avisos">
+        <div class="card-title">
+          <span class="k-label k-label--teal">Topes y avisos</span>
+          <span class="chip chip--ok">Protección activa</span>
+        </div>
+
+        <div class="toggle-row">
+          <div class="t-txt">
+            <p class="t-title">Tope de gasto activado</p>
+            <p class="t-desc">Si llegas al tope, tus agentes dejarán de hacer llamadas salientes y te avisaremos al momento. Las llamadas entrantes se siguen atendiendo con normalidad.</p>
+          </div>
+          <button class="toggle on" role="switch" aria-checked="true" aria-label="Tope de gasto activado"></button>
+        </div>
+
+        <div class="field mt-8">
+          <label for="tope">Tu tope mensual</label>
+          <div class="tope-input">
+            <input class="input" id="tope" type="text" inputmode="numeric" value="120" aria-describedby="tope-hint">
+            <span class="eur" aria-hidden="true">EUR</span>
+          </div>
+          <p class="hint" id="tope-hint">Cuenta el consumo extra fuera de tu plan. Si lo cambias, se aplica desde hoy mismo.</p>
+        </div>
+
+        <div class="toggle-row">
+          <div class="t-txt">
+            <p class="t-title">Avisarte al llegar al 80%</p>
+            <p class="t-desc">Te escribimos por WhatsApp cuando llegues al 80% de tus minutos o conversaciones.</p>
+          </div>
+          <button class="toggle on" role="switch" aria-checked="true" aria-label="Aviso al 80 por ciento activado"></button>
+        </div>
+
+        <div class="toggle-row">
+          <div class="t-txt">
+            <p class="t-title">Avisarte al llegar al 100%</p>
+            <p class="t-desc">Aviso inmediato a ti y a Lucía en recepción, con lo que está pasando y qué opciones tienes.</p>
+          </div>
+          <button class="toggle on" role="switch" aria-checked="true" aria-label="Aviso al 100 por ciento activado"></button>
+        </div>
+
+        <div class="banner banner--ok mt-16" role="note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+          <span><strong>Este tope existe para que no haya facturas sorpresa.</strong> Si llegas, paramos las llamadas salientes al momento y decides tú el siguiente paso.</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== Bloque 3 · Tu plan ===== -->
+    <section class="card card--lg mt-24" aria-label="Tu plan" id="facturas">
+      <div class="card-title">
+        <span class="k-label">Tu plan</span>
+        <span class="chip chip--info">Al día</span>
+      </div>
+
+      <div class="plan-grid">
+        <div>
+          <p class="plan-name">Equipo Dental</p>
+          <p class="muted mt-8" style="font-size:14px">Hugo, Nora, Leo y Olmo trabajan para tu clínica. Incluye 600 minutos de voz y 600 conversaciones de WhatsApp al mes.</p>
+
+          <div class="plan-avatars" aria-label="Agentes incluidos en tu plan">
+            <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt="Hugo, captación y recepción"></span>
+            <span class="avatar"><img src="assets/mascotas/nora-360.webp" alt="Nora, presupuestos"></span>
+            <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt="Leo, revisiones y recordatorios"></span>
+            <span class="avatar"><img src="assets/mascotas/olmo-360.webp" alt="Olmo, coordinador"></span>
+            <span class="a-name">Hugo · Nora · Leo · Olmo</span>
+          </div>
+
+          <p class="mensualidad"><strong>Tu mensualidad:</strong> la acordada en tu contrato. La tienes en cada factura y en tu contrato firmado.</p>
+
+          <div class="mt-16">
+            <button class="btn btn--primary" aria-expanded="true" aria-controls="selector-ampliar">Ampliar plan</button>
+          </div>
+
+          <!-- Selector de ampliación (abierto, estático para la maqueta) -->
+          <div class="amplia" id="selector-ampliar" aria-label="Agentes disponibles para ampliar tu plan">
+            <div class="spread">
+              <span class="k-label">Amplía tu equipo</span>
+              <span class="k-time">1 agente disponible</span>
+            </div>
+            <article class="agent-card agent-card--locked agent-card--mini">
+              <span class="lock" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              </span>
+              <p class="role">Contenido y reseñas</p>
+              <p class="name">Darío</p>
+              <p class="mission">Prepara publicaciones para tus redes y responde reseñas con tu tono, siempre con tu aprobación.</p>
+              <p class="locked-note">Disponible en tu plan superior. Sin permanencia añadida.</p>
+              <img class="mascot" src="assets/mascotas/dario-720.webp" alt="Darío, agente de contenido, disponible al ampliar el plan">
+            </article>
+            <div class="row mt-16">
+              <button class="btn btn--secondary btn--sm">Me interesa, que me llame el equipo</button>
+              <span class="muted" style="font-size:12.5px">Sin compromiso. Te contamos qué haría Darío en tu clínica.</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="spread">
+            <span class="k-label">Tus facturas</span>
+            <span class="k-time">3 últimas</span>
+          </div>
+          <table class="table mt-8" aria-label="Facturas descargables">
+            <thead>
+              <tr>
+                <th scope="col">Fecha</th>
+                <th scope="col">Periodo</th>
+                <th scope="col"><span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)">Descargar</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="k-time">01 · 07 · 2026</td>
+                <td>Junio de 2026</td>
+                <td style="text-align:right"><a class="btn btn--secondary btn--sm" href="#" download>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
+                  Descargar</a></td>
+              </tr>
+              <tr>
+                <td class="k-time">01 · 06 · 2026</td>
+                <td>Mayo de 2026</td>
+                <td style="text-align:right"><a class="btn btn--secondary btn--sm" href="#" download>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
+                  Descargar</a></td>
+              </tr>
+              <tr>
+                <td class="k-time">01 · 05 · 2026</td>
+                <td>Abril de 2026</td>
+                <td style="text-align:right"><a class="btn btn--secondary btn--sm" href="#" download>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
+                  Descargar</a></td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="factura-note">La factura legal la emite nuestro sistema de facturación conforme a Verifactu. Si necesitas cambiar los datos de facturación, escríbenos y lo dejamos listo en el día.</p>
+
+          <div class="banner banner--info mt-16" role="note">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v4h1"/></svg>
+            <span>¿Dudas con tu plan o con una factura? <a href="#">Habla con una persona del equipo Kórtex</a>. Sin menús, sin esperas.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

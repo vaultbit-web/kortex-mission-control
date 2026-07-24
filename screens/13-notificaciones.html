@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Avisos y notificaciones</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Avisos y notificaciones */
+  .crumbs{display:flex; align-items:center; gap:8px; margin-bottom:6px}
+  .crumbs a{text-decoration:none}
+  .crumbs .sep{color:var(--ink-dim); opacity:.6}
+
+  /* ---- Feed de avisos ---- */
+  .day-label{margin:22px 0 10px; display:flex; align-items:center; gap:12px}
+  .day-label::after{content:""; flex:1; height:1px; background:var(--line)}
+  .notif-list > .day-label:first-child{margin-top:0}
+
+  .notif{
+    display:grid; grid-template-columns:44px 1fr; gap:14px; align-items:start;
+    background:var(--white); border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:15px 16px; margin-bottom:10px;
+  }
+  .notif-icon{
+    width:44px; height:44px; border-radius:50%; display:grid; place-items:center; flex:0 0 auto;
+  }
+  .notif-icon--urgent{background:var(--urgent-bg); color:var(--urgent-ink)}
+  .notif-icon--warn{background:var(--warn-bg); color:var(--warn-ink)}
+  .notif-icon--info{background:var(--info-bg); color:var(--info-ink)}
+  .notif-icon--neutral{background:var(--neutral-bg); color:var(--ink-dim)}
+  .notif--urgent{border-left:5px solid var(--urgent-dot)}
+
+  .notif .n-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:5px}
+  .notif .n-title{font-weight:600; font-size:16px}
+  .notif .n-body{font-size:16px; color:var(--ink); line-height:1.55}
+  .notif .n-body .who{font-weight:600; color:var(--ink)}
+  .notif .n-body .arrow{color:var(--teal); font-weight:600}
+  /* Avatar funcional pequeño del agente (EXCEPCIÓN permitida en listas densas) */
+  .notif .mini{
+    width:28px; height:28px; border-radius:50%; background:var(--mint);
+    border:1px solid var(--line); display:inline-block; vertical-align:-9px;
+    margin-right:7px; object-fit:cover; object-position:50% 12%;
+  }
+  .notif .n-sent{
+    display:flex; align-items:center; gap:7px; margin-top:9px;
+    font-size:14px; color:var(--ink-dim);
+  }
+  .notif .n-sent svg{flex:0 0 auto; opacity:.7}
+  .notif .n-foot{display:flex; align-items:center; gap:14px; margin-top:10px; flex-wrap:wrap}
+  .notif .n-resolved{
+    display:flex; align-items:center; gap:8px; margin-top:10px;
+    background:var(--ok-bg); color:var(--ok-ink); border-radius:10px;
+    padding:9px 13px; font-size:14px; font-weight:500;
+  }
+  .link-detail{font-size:14.5px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:5px; min-height:44px}
+  .link-detail:hover{text-decoration:underline}
+
+  /* ---- Preferencias por persona ---- */
+  .person-picker{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px}
+  .person-picker button{
+    display:flex; align-items:center; gap:10px; border-radius:999px; min-height:48px;
+    padding:7px 18px 7px 8px; border:1px solid var(--line); background:var(--white);
+    font-size:15px; font-weight:600; color:var(--ink); text-align:left;
+  }
+  .person-picker button .avatar-user{width:32px; height:32px; font-size:12px}
+  .person-picker button small{display:block; font-weight:500; font-size:13px; color:inherit; opacity:.8}
+  .person-picker button.active{background:var(--teal); border-color:var(--teal); color:var(--white)}
+  .person-picker button.active .avatar-user{background:rgba(255,255,255,.2); color:var(--white)}
+
+  .pref-scroll{overflow-x:auto}
+  .pref-table{width:100%; border-collapse:collapse; min-width:460px}
+  .pref-table th{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-dim); font-weight:600; text-align:center; padding:8px 6px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  .pref-table th:first-child{text-align:left; padding-left:2px}
+  .pref-table td{padding:13px 6px; border-bottom:1px solid var(--line); text-align:center; vertical-align:middle}
+  .pref-table td:first-child{text-align:left; padding-left:2px}
+  .pref-table tr:last-child td{border-bottom:none}
+  .pref-name{font-size:16px; font-weight:600; line-height:1.3}
+  .pref-name small{display:block; font-weight:400; font-size:14px; color:var(--ink-dim); margin-top:3px; line-height:1.4}
+
+  /* Toggle como botón accesible */
+  button.toggle{display:inline-block; vertical-align:middle; padding:0; border:1px solid var(--line); flex:0 0 auto}
+  .t-cell{display:inline-grid; place-items:center; min-width:44px; min-height:44px}
+
+  /* Toggle bloqueado (urgencia clínica) */
+  .toggle--locked{background:var(--teal); opacity:.55; cursor:not-allowed; position:relative}
+  .toggle--locked::after{left:24px}
+  .toggle--locked .lock-ico{
+    position:absolute; left:8px; top:50%; transform:translateY(-50%);
+    color:#fff; display:grid; place-items:center;
+  }
+  .row-locked td{background:rgba(194,74,63,.035)}
+  .lock-note{
+    display:inline-flex; align-items:center; gap:6px; margin-top:4px;
+    font-size:13px; color:var(--urgent-ink); font-weight:600;
+  }
+  .lock-note svg{flex:0 0 auto}
+
+  @media (max-width:980px){
+    .notif{grid-template-columns:38px 1fr; padding:13px 14px}
+    .notif-icon{width:38px; height:38px}
+    .pref-table{min-width:430px}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <nav class="crumbs" aria-label="Ruta de navegación">
+          <a class="k-label k-label--teal" href="11-ajustes-clinica.html">Ajustes</a>
+          <span class="sep" aria-hidden="true">·</span>
+          <span class="k-label" aria-current="page">Avisos y notificaciones</span>
+        </nav>
+        <h1>Avisos y notificaciones</h1>
+        <p class="h-sub">Qué avisos ha enviado la plataforma y cómo quiere recibirlos cada persona de tu equipo.</p>
+      </div>
+      <p class="k-label k-label--teal">Martes, 21 de julio · 10:47</p>
+    </header>
+
+    <section class="kpi-row" aria-label="Resumen de avisos">
+      <div class="kpi"><b>2</b><span class="k-label">Avisos de hoy</span><span class="delta">1 enviado y 1 solo registrado</span></div>
+      <div class="kpi"><b>5</b><span class="k-label">Avisos en los últimos 7 días</span><span class="delta">1 urgencia clínica y 4 de gestión</span></div>
+      <div class="kpi"><b>2</b><span class="k-label">Personas que reciben avisos</span><span class="delta">Marta y Lucía</span></div>
+    </section>
+
+    <div class="grid-2 mt-24" style="align-items:start">
+
+      <!-- ===== IZQUIERDA · Últimos avisos ===== -->
+      <section class="card card--lg" aria-label="Últimos avisos">
+        <div class="card-title">
+          <span class="k-label">Últimos avisos</span>
+          <span class="k-time">Actualizado a las 10:47</span>
+        </div>
+
+        <div class="notif-list">
+
+          <p class="day-label k-label k-label--teal">Hoy · martes 21</p>
+
+          <!-- Urgencia clínica -->
+          <article class="notif notif--urgent">
+            <span class="notif-icon notif-icon--urgent" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4.5"/><path d="M12 17.6v.1"/></svg>
+            </span>
+            <div>
+              <div class="n-head">
+                <span class="k-time">10:41</span>
+                <span class="n-title">Urgencia clínica detectada</span>
+                <span class="chip chip--urgent">Urgencia clínica</span>
+              </div>
+              <p class="n-body"><img class="mini" src="assets/mascotas/hugo-360.webp" alt=""><span class="who">Hugo</span> · Llamada con dolor fuerte tras una extracción de ayer <span class="arrow">→</span> pasada de inmediato a una persona del equipo con resumen.</p>
+              <p class="n-sent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8 5 8-5"/><rect x="4" y="6" width="16" height="12" rx="2"/></svg>
+                Aviso enviado a Marta y Lucía por WhatsApp y al móvil.
+              </p>
+              <div class="n-foot"><a class="link-detail" href="03-conversacion.html">Ver detalle
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a></div>
+            </div>
+          </article>
+
+          <!-- Tope de consumo 64% -->
+          <article class="notif">
+            <span class="notif-icon notif-icon--info" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+            </span>
+            <div>
+              <div class="n-head">
+                <span class="k-time">09:12</span>
+                <span class="n-title">Consumo del mes al 64 %</span>
+                <span class="chip chip--info">Solo registro</span>
+              </div>
+              <p class="n-body"><img class="mini" src="assets/mascotas/olmo-360.webp" alt=""><span class="who">Olmo</span> · Los minutos de voz llegaron al 64 % de tu plan <span class="arrow">→</span> sin aviso a nadie, el primero salta al llegar al 80 %.</p>
+              <div class="n-foot"><a class="link-detail" href="07-consumo.html">Ver detalle
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a></div>
+            </div>
+          </article>
+
+          <p class="day-label k-label">Ayer · lunes 20</p>
+
+          <!-- Desvío caído, resuelto -->
+          <article class="notif">
+            <span class="notif-icon notif-icon--urgent" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 3.5 10 7l-2 2c.8 2 2.5 3.9 4.9 5l2-2 3.6 1.4v3.4c0 1-.8 1.8-1.8 1.7C9.6 17.9 6 14.3 4.9 7.3c-.1-1 .7-1.8 1.7-1.8h2Z"/><path d="m18 4-4 4M14 4l4 4"/></svg>
+            </span>
+            <div>
+              <div class="n-head">
+                <span class="k-time">22:14</span>
+                <span class="n-title">Desvío telefónico caído</span>
+                <span class="chip chip--urgent">Conexión caída</span>
+              </div>
+              <p class="n-body">El desvío desde el <span class="who">912 345 678</span> dejó de responder <span class="arrow">→</span> aviso enviado a Marta por WhatsApp y al móvil para llamar a la operadora.</p>
+              <p class="n-resolved">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+                Resuelto · <span class="k-time" style="color:inherit">23:05</span> · El desvío volvió a funcionar solo, ninguna llamada quedó sin atender.
+              </p>
+              <div class="n-foot"><a class="link-detail" href="06b-integraciones.html">Ver detalle
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a></div>
+            </div>
+          </article>
+
+          <!-- Cambio de configuración -->
+          <article class="notif">
+            <span class="notif-icon notif-icon--neutral" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+            </span>
+            <div>
+              <div class="n-head">
+                <span class="k-time">18:22</span>
+                <span class="n-title">Cambio de configuración de Hugo</span>
+                <span class="chip chip--neutral">Registrado</span>
+              </div>
+              <p class="n-body"><span class="who">Lucía Fernández</span> · Actualizó los horarios de agosto en la información que Hugo cuenta por teléfono <span class="arrow">→</span> se aplica a las conversaciones nuevas.</p>
+              <div class="n-foot"><a class="link-detail" href="10-configuracion-agente.html">Ver detalle
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a></div>
+            </div>
+          </article>
+
+          <p class="day-label k-label">Viernes 17 de julio</p>
+
+          <!-- Escalado sin atender -->
+          <article class="notif">
+            <span class="notif-icon notif-icon--warn" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+            </span>
+            <div>
+              <div class="n-head">
+                <span class="k-time">13:05</span>
+                <span class="n-title">Escalado sin atender 45 minutos</span>
+                <span class="chip chip--warn">Atención</span>
+              </div>
+              <p class="n-body"><img class="mini" src="assets/mascotas/nora-360.webp" alt=""><span class="who">Nora</span> · Una consulta de presupuesto pasada al equipo llevaba 45 minutos esperando <span class="arrow">→</span> se avisó a Marta por WhatsApp y la paciente fue atendida.</p>
+              <div class="n-foot"><a class="link-detail" href="02-cola-revision.html">Ver detalle
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a></div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ===== DERECHA · Preferencias por persona ===== -->
+      <section class="card card--lg" aria-label="Preferencias de aviso por persona">
+        <div class="card-title">
+          <span class="k-label">Preferencias por persona</span>
+        </div>
+
+        <div class="person-picker" role="tablist" aria-label="Elegir persona">
+          <button type="button" class="active" role="tab" id="tab-marta" aria-selected="true" aria-controls="panel-preferencias">
+            <span class="avatar-user" aria-hidden="true">MA</span>
+            <span>Marta Andrés<small>Gerente</small></span>
+          </button>
+          <button type="button" role="tab" id="tab-lucia" aria-selected="false" aria-controls="panel-preferencias" tabindex="-1">
+            <span class="avatar-user" aria-hidden="true">LF</span>
+            <span>Lucía Fernández<small>Recepción</small></span>
+          </button>
+        </div>
+
+        <div class="pref-scroll" id="panel-preferencias" role="tabpanel" tabindex="0" aria-labelledby="tab-marta">
+          <table class="pref-table" aria-label="Canales de aviso de Marta Andrés">
+            <thead>
+              <tr>
+                <th scope="col">Tipo de aviso</th>
+                <th scope="col">Aviso en el móvil</th>
+                <th scope="col">WhatsApp</th>
+                <th scope="col">Correo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-locked">
+                <td>
+                  <span class="pref-name">Urgencia clínica
+                    <small>Siempre activada, por los tres canales.</small>
+                  </span>
+                  <span class="lock-note">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                    No se puede desactivar
+                  </span>
+                </td>
+                <td><span class="t-cell"><button class="toggle on toggle--locked" role="switch" aria-checked="true" aria-disabled="true" aria-label="Urgencia clínica en el móvil, siempre activada, no se puede desactivar"><span class="lock-ico" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span></button></span></td>
+                <td><span class="t-cell"><button class="toggle on toggle--locked" role="switch" aria-checked="true" aria-disabled="true" aria-label="Urgencia clínica por WhatsApp, siempre activada, no se puede desactivar"><span class="lock-ico" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span></button></span></td>
+                <td><span class="t-cell"><button class="toggle on toggle--locked" role="switch" aria-checked="true" aria-disabled="true" aria-label="Urgencia clínica por correo, siempre activada, no se puede desactivar"><span class="lock-ico" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span></button></span></td>
+              </tr>
+              <tr>
+                <td><span class="pref-name">Escalado sin atender
+                  <small>Si un asunto espera más de 30 minutos.</small></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Escalado sin atender en el móvil, activado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Escalado sin atender por WhatsApp, activado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle" role="switch" aria-checked="false" aria-label="Escalado sin atender por correo, desactivado"></button></span></td>
+              </tr>
+              <tr>
+                <td><span class="pref-name">Tope de consumo al 80 %
+                  <small>Primer aviso, con margen para decidir.</small></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Tope de consumo al 80 por ciento en el móvil, activado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle" role="switch" aria-checked="false" aria-label="Tope de consumo al 80 por ciento por WhatsApp, desactivado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Tope de consumo al 80 por ciento por correo, activado"></button></span></td>
+              </tr>
+              <tr>
+                <td><span class="pref-name">Tope de consumo al 100 %
+                  <small>Tus agentes dejan de hacer llamadas salientes.</small></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Tope de consumo al 100 por ciento en el móvil, activado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Tope de consumo al 100 por ciento por WhatsApp, activado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Tope de consumo al 100 por ciento por correo, activado"></button></span></td>
+              </tr>
+              <tr>
+                <td><span class="pref-name">Conexión caída
+                  <small>Teléfono, WhatsApp o calendario sin responder.</small></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Conexión caída en el móvil, activado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Conexión caída por WhatsApp, activado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle" role="switch" aria-checked="false" aria-label="Conexión caída por correo, desactivado"></button></span></td>
+              </tr>
+              <tr>
+                <td><span class="pref-name">Informe semanal de Olmo
+                  <small>Cada viernes a las 09:00.</small></span></td>
+                <td><span class="t-cell"><button class="toggle" role="switch" aria-checked="false" aria-label="Informe semanal de Olmo en el móvil, desactivado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Informe semanal de Olmo por WhatsApp, activado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle" role="switch" aria-checked="false" aria-label="Informe semanal de Olmo por correo, desactivado"></button></span></td>
+              </tr>
+              <tr>
+                <td><span class="pref-name">Cambios de configuración
+                  <small>Quién cambió qué, con fecha y hora.</small></span></td>
+                <td><span class="t-cell"><button class="toggle" role="switch" aria-checked="false" aria-label="Cambios de configuración en el móvil, desactivado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle" role="switch" aria-checked="false" aria-label="Cambios de configuración por WhatsApp, desactivado"></button></span></td>
+                <td><span class="t-cell"><button class="toggle on" role="switch" aria-checked="true" aria-label="Cambios de configuración por correo, activado"></button></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="banner banner--info mt-24" role="note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto; margin-top:1px"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 7.8v.1"/></svg>
+          <span>Los avisos de urgencia llegan por todos los canales a la vez. Los demás, como tú prefieras.</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- Banda de Olmo: quién avisa y cuándo -->
+    <section class="olmo-band mt-24" aria-label="Quién envía los avisos">
+      <img class="mascot" src="assets/mascotas/olmo-720.webp" alt="Olmo, agente coordinador">
+      <div class="body">
+        <h3>Olmo es quien te avisa</h3>
+        <p>Lo urgente sale al momento, a la vez, por todos los canales. Lo demás lo resume el viernes a las 09:00 en tu WhatsApp.</p>
+      </div>
+      <a class="btn" href="09-informe-olmo.html">Ver el último informe</a>
+    </section>
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

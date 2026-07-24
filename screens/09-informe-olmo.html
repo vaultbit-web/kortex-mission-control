@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Informe semanal de Olmo</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* ===== Estilos propios de la pantalla: Informe semanal de Olmo ===== */
+
+  .page-head .h-sub{max-width:640px}
+
+  .report-grid{align-items:start; gap:26px}
+  .col-label{display:flex; align-items:center; gap:10px; margin-bottom:14px}
+  .col-label .num{
+    width:26px; height:26px; border-radius:50%; background:var(--teal); color:var(--white);
+    display:grid; place-items:center; font-family:var(--mono); font-size:12px; flex:0 0 auto;
+  }
+
+  /* ---------- Mockup de teléfono: iPhone 17 Pro Max (pantalla 6,9",
+     proporción real 19,5:9, isla dinámica y marco de titanio). Los colores
+     de WhatsApp son deliberados para que se reconozca la aplicación. ---------- */
+  .phone{
+    position:relative; width:min(392px,100%); margin:0 auto;
+    background:linear-gradient(160deg, #23262b, #101216 55%, #1c1f24);
+    border-radius:60px; padding:11px;
+    box-shadow:
+      0 0 0 2.5px #4a4d53,              /* canto de titanio */
+      0 0 0 3.5px rgba(255,255,255,.14),
+      var(--shadow-lift),
+      inset 0 0 0 2px rgba(255,255,255,.05);
+  }
+  /* isla dinámica */
+  .phone::before{
+    content:""; position:absolute; top:26px; left:50%; transform:translateX(-50%);
+    width:110px; height:30px; border-radius:999px; background:#000;
+    z-index:6; box-shadow:inset 0 0 4px rgba(255,255,255,.08), 0 1px 4px rgba(0,0,0,.5);
+  }
+  /* botones laterales del marco */
+  .phone::after{
+    content:""; position:absolute; right:-4.5px; top:190px; width:3px; height:78px;
+    border-radius:2px; background:#3d4046; box-shadow:0 -96px 0 #3d4046;
+  }
+  .phone .screen{
+    border-radius:50px; overflow:hidden; display:flex; flex-direction:column;
+    aspect-ratio:393/852;               /* proporción real del panel 19,5:9 */
+    background:
+      radial-gradient(circle at 18% 24%, rgba(10,31,46,.028) 0 2px, transparent 2px),
+      radial-gradient(circle at 72% 64%, rgba(10,31,46,.028) 0 2px, transparent 2px),
+      #E5DDD5;
+    background-size:46px 46px, 58px 58px, auto;
+  }
+  /* barra de estado iOS, integrada con la cabecera del chat */
+  .status-bar{
+    background:#0C332C; color:var(--white);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 30px 2px; font-family:var(--mono); font-size:12.5px; font-weight:500;
+    letter-spacing:.02em;
+  }
+  .status-bar .ic{display:inline-flex; align-items:center; gap:5px; opacity:.92}
+  .chat-head{
+    background:#0C332C; color:var(--white);
+    display:flex; align-items:center; gap:11px; padding:12px 16px 12px;
+  }
+  .chat-head .back{opacity:.8; flex:0 0 auto; display:grid; place-items:center}
+  .chat-avatar{
+    width:38px; height:38px; border-radius:50%; background:var(--mint); overflow:hidden;
+    flex:0 0 auto; border:2px solid rgba(255,255,255,.35); position:relative;
+  }
+  .chat-avatar img{width:150%; height:auto; position:absolute; top:-2px; left:50%; transform:translateX(-50%)}
+  .chat-head .who b{display:block; font-size:14.5px; font-weight:600; line-height:1.2}
+  .chat-head .who span{font-size:11.5px; opacity:.75}
+
+  .chat-body{
+    flex:1; min-height:0; padding:16px 12px 14px; display:flex; flex-direction:column; gap:8px;
+    overflow-y:auto; overscroll-behavior:contain;
+    scrollbar-width:thin; scrollbar-color:rgba(12,51,44,.4) transparent;
+  }
+  .chat-body::-webkit-scrollbar{width:5px}
+  .chat-body::-webkit-scrollbar-thumb{background:rgba(12,51,44,.35); border-radius:99px}
+  .chat-body::-webkit-scrollbar-track{background:transparent}
+  .chat-date{
+    align-self:center; background:rgba(251,249,244,.92); color:var(--ink);
+    font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    padding:4px 12px; border-radius:999px; margin-bottom:6px; box-shadow:0 1px 1px rgba(10,31,46,.06);
+  }
+  .bubble{
+    position:relative; align-self:flex-start; max-width:88%;
+    background:var(--white); border-radius:12px; border-top-left-radius:4px;
+    padding:9px 12px 8px; font-size:13.5px; line-height:1.5; color:var(--ink);
+    box-shadow:0 1px 1px rgba(10,31,46,.08);
+  }
+  .bubble::before{
+    content:""; position:absolute; top:0; left:-7px; width:0; height:0;
+    border-top:9px solid var(--white); border-left:8px solid transparent;
+  }
+  .bubble + .bubble{margin-top:2px; border-top-left-radius:12px}
+  .bubble + .bubble::before{display:none}
+  .bubble p{margin:0}
+  .bubble p + p{margin-top:7px}
+  .bubble .b-title{font-weight:700}
+  .bubble ul{list-style:none; margin:4px 0 0; padding:0}
+  .bubble li{padding:3px 0 3px 16px; position:relative}
+  .bubble li::before{
+    content:""; position:absolute; left:2px; top:11px; width:6px; height:6px;
+    border-radius:50%; background:var(--lime);
+  }
+  .bubble li.pend::before{background:var(--warn-dot)}
+  .bubble .msg-time{
+    float:right; margin:8px 0 0 10px; font-family:var(--mono); font-size:10px;
+    color:var(--ink); opacity:.78; letter-spacing:.04em;
+  }
+  .bubble a{font-weight:600}
+  .chat-input{
+    display:flex; align-items:center; gap:8px; padding:8px 10px 4px;
+  }
+  /* barra de gesto de inicio de iOS */
+  .home-bar{width:126px; height:5px; border-radius:99px; background:rgba(10,31,46,.32); margin:7px auto 9px}
+  .chat-input .fake-field{
+    flex:1; background:var(--white); border-radius:999px; padding:10px 16px;
+    font-size:13px; color:var(--ink-dim); box-shadow:0 1px 1px rgba(10,31,46,.08);
+  }
+  .chat-input .mic{
+    width:42px; height:42px; border-radius:50%; background:#0C332C; color:var(--white);
+    display:grid; place-items:center; flex:0 0 auto;
+  }
+  .phone-caption{text-align:center; margin-top:14px; font-size:13px; color:var(--ink-dim)}
+
+  /* ---------- Documento web / PDF ---------- */
+  .doc-card{padding:0; overflow:hidden}
+  .doc-head{
+    position:relative; overflow:hidden; background:var(--teal); color:var(--white);
+    padding:26px 190px 26px 28px; min-height:150px;
+  }
+  .doc-head .k-label{color:var(--mint); opacity:.95}
+  .doc-head h2{font-size:29px; margin-top:8px}
+  .doc-head h2 em{font-style:italic}
+  .doc-head .sent{font-size:13px; opacity:.85; margin-top:6px}
+  .doc-head .mascot{
+    position:absolute; right:-36px; bottom:-52px; width:200px; pointer-events:none;
+    filter:drop-shadow(0 12px 24px rgba(0,0,0,.28));
+  }
+  .doc-body{padding:24px 28px 28px}
+  .doc-kpis{grid-template-columns:repeat(3,1fr)}
+  .doc-kpis .kpi{padding:16px 16px}
+  .doc-kpis .kpi b{font-size:34px}
+  .doc-section{margin-top:26px}
+  .doc-section>.k-label{display:block; margin-bottom:12px}
+  .doc-item{
+    display:grid; grid-template-columns:64px 34px 1fr auto; gap:12px; align-items:center;
+    padding:12px 4px; border-bottom:1px solid var(--line);
+  }
+  .doc-item:last-child{border-bottom:none}
+  .doc-item .txt{font-size:14.5px}
+  .doc-item .txt .who{font-weight:600}
+  .doc-item .txt .arrow{color:var(--teal); font-weight:600}
+  .doc-item .txt .resp{display:block; font-size:13px; color:var(--ink-dim); margin-top:2px}
+  .next-week{
+    background:var(--info-bg); border-radius:var(--r-sm); padding:14px 16px; font-size:14.5px;
+  }
+  .doc-foot{
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    margin-top:26px; padding-top:20px; border-top:1px dashed var(--line);
+  }
+  .doc-foot .sign{font-size:13px; color:var(--ink-dim)}
+  .doc-foot .sign b{display:block; font-family:var(--serif); font-style:italic; font-weight:400; font-size:18px; color:var(--teal)}
+
+  .foot-note{margin-top:34px; align-items:center; justify-content:center; text-align:center}
+  .foot-note svg{flex:0 0 auto}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:980px){
+    .report-grid{gap:20px}
+    .phone{width:min(350px,100%)}
+    .phone::before{top:22px; width:98px; height:27px}
+    .doc-head{padding:22px 130px 22px 20px}
+    .doc-head .mascot{width:150px; right:-30px; bottom:-40px}
+    .doc-body{padding:18px 18px 22px}
+    .doc-kpis{grid-template-columns:1fr 1fr 1fr; gap:10px}
+    .doc-kpis .kpi{padding:12px}
+    .doc-kpis .kpi b{font-size:26px}
+    .doc-item{grid-template-columns:64px 34px 1fr}
+    .doc-item .chip{grid-column:3; justify-self:start}
+  }
+  @media (max-width:420px){
+    .doc-kpis{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Informe semanal · Clínica Dental Aurora</p>
+        <h1>El informe de Olmo</h1>
+        <p class="h-sub">El mismo informe, en dos formatos: el mensaje que te llega al WhatsApp cada viernes y el documento completo para leer con calma o guardar.</p>
+      </div>
+      <a class="btn btn--secondary" href="01-inicio.html">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+        Volver al panel</a>
+    </header>
+
+    <div class="grid-2 report-grid">
+
+      <!-- ===== IZQUIERDA: el mensaje de WhatsApp ===== -->
+      <section aria-label="Así llega el informe a tu WhatsApp">
+        <div class="col-label">
+          <span class="num" aria-hidden="true">1</span>
+          <span class="k-label">Así te llega al WhatsApp</span>
+        </div>
+
+        <div class="phone" role="figure" aria-label="Mensaje de WhatsApp de Olmo con el resumen semanal, en un iPhone">
+          <div class="screen">
+
+            <div class="status-bar" aria-hidden="true">
+              <span>09:00</span>
+              <span class="ic">
+                <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 4.2a9.5 9.5 0 0 1 13 0"/><path d="M3.8 6.8a6.2 6.2 0 0 1 8.4 0"/><circle cx="8" cy="9.8" r="1.3" fill="currentColor" stroke="none"/></svg>
+                <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="0.7" y="0.7" width="19.6" height="10.6" rx="3.3" stroke="currentColor" stroke-width="1" opacity=".5"/><rect x="2.4" y="2.4" width="13" height="7.2" rx="1.8" fill="currentColor"/><path d="M22.2 4v4a2.2 2.2 0 0 0 0-4Z" fill="currentColor" opacity=".5"/></svg>
+              </span>
+            </div>
+
+            <div class="chat-head">
+              <span class="back" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg>
+              </span>
+              <span class="chat-avatar"><img src="assets/mascotas/olmo-360.webp" alt=""></span>
+              <div class="who">
+                <b>Olmo · Kórtex</b>
+                <span>Asistente con IA de tu clínica</span>
+              </div>
+            </div>
+
+            <div class="chat-body">
+              <span class="chat-date">Viernes 17 de julio</span>
+
+              <div class="bubble">
+                <p>Buenos días, Marta. Soy Olmo, el asistente con IA de tu clínica. Resumen de la semana:</p>
+                <span class="msg-time">09:00</span>
+              </div>
+
+              <div class="bubble">
+                <ul>
+                  <li><strong>127 llamadas y mensajes atendidos</strong> (la semana pasada: 119)</li>
+                  <li><strong>31 citas creadas</strong> (la semana pasada: 27)</li>
+                  <li><strong>5 huecos recuperados</strong> de 7 cancelaciones</li>
+                </ul>
+                <span class="msg-time">09:00</span>
+              </div>
+
+              <div class="bubble">
+                <p class="b-title">Lo mejor</p>
+                <ul>
+                  <li>Leo llenó 5 de las 7 cancelaciones avisando a la lista de espera.</li>
+                  <li>Nora consiguió que 4 presupuestos parados dieran el paso.</li>
+                </ul>
+                <span class="msg-time">09:00</span>
+              </div>
+
+              <div class="bubble">
+                <p class="b-title">Necesita tu decisión</p>
+                <ul>
+                  <li class="pend">2 citas propuestas esperan que Lucía las confirme en el programa de gestión.</li>
+                  <li class="pend">Una paciente quiere hablar de financiación antes de decidir. Quedó en que la llamas el lunes.</li>
+                </ul>
+                <span class="msg-time">09:00</span>
+              </div>
+
+              <div class="bubble">
+                <p class="b-title">La semana que viene</p>
+                <p>Leo empieza a proponer las revisiones de septiembre, así la vuelta de vacaciones se llena con tiempo.</p>
+                <span class="msg-time">09:00</span>
+              </div>
+
+              <div class="bubble">
+                <p><a href="#informe-completo">Ver el informe completo</a></p>
+                <span class="msg-time">09:00</span>
+              </div>
+            </div>
+
+            <div class="chat-input" aria-hidden="true">
+              <span class="fake-field">Escribe un mensaje</span>
+              <span class="mic">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+              </span>
+            </div>
+            <div class="home-bar" aria-hidden="true"></div>
+
+          </div>
+        </div>
+        <p class="phone-caption">¿Dudas con algo del informe? Responde a Olmo por WhatsApp y el equipo de Kórtex te contesta.</p>
+      </section>
+
+      <!-- ===== DERECHA: la versión web / PDF ===== -->
+      <section aria-label="Versión completa del informe, web y PDF" id="informe-completo">
+        <div class="col-label">
+          <span class="num" aria-hidden="true">2</span>
+          <span class="k-label">La versión completa, web y PDF</span>
+        </div>
+
+        <article class="card card--lg doc-card">
+
+          <header class="doc-head">
+            <p class="k-label">Clínica Dental Aurora · preparado por Olmo con IA</p>
+            <h2>Informe semanal · <em>10 a 16 de julio</em></h2>
+            <p class="sent">Enviado el viernes 17 a las 09:00 · también en tu WhatsApp</p>
+            <img class="mascot" src="assets/mascotas/olmo-720.webp" alt="Olmo, agente coordinador">
+          </header>
+
+          <div class="doc-body">
+
+            <div class="kpi-row doc-kpis" aria-label="Las tres cifras de la semana">
+              <div class="kpi">
+                <b>127</b>
+                <span class="k-label">Llamadas y mensajes atendidos</span>
+                <span class="delta up">La semana pasada: 119</span>
+              </div>
+              <div class="kpi">
+                <b>31</b>
+                <span class="k-label">Citas creadas</span>
+                <span class="delta up">La semana pasada: 27</span>
+              </div>
+              <div class="kpi">
+                <b>5</b>
+                <span class="k-label">Huecos recuperados</span>
+                <span class="delta up">De 7 cancelaciones</span>
+              </div>
+            </div>
+
+            <section class="doc-section" aria-label="Lo mejor de la semana">
+              <span class="k-label">Lo mejor de la semana</span>
+              <div class="doc-item">
+                <span class="k-time">Jue 12:38</span>
+                <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>
+                <p class="txt"><span class="who">Leo</span> · 7 cancelaciones de última hora, avisó a la lista de espera <span class="arrow">→</span> 5 huecos llenos el mismo día</p>
+                <span class="chip chip--ok">Huecos recuperados</span>
+              </div>
+              <div class="doc-item">
+                <span class="k-time">Mié 10:15</span>
+                <span class="avatar"><img src="assets/mascotas/nora-360.webp" alt=""></span>
+                <p class="txt"><span class="who">Nora</span> · Seguimiento de presupuestos parados desde hace semanas <span class="arrow">→</span> 4 pacientes dieron el paso</p>
+                <span class="chip chip--ok">Seguimiento con fruto</span>
+              </div>
+            </section>
+
+            <section class="doc-section" aria-label="Pendientes que necesitan tu decisión">
+              <span class="k-label">Necesita tu decisión</span>
+              <div class="doc-item">
+                <span class="k-time">Vie 08:50</span>
+                <span class="avatar"><img src="assets/mascotas/olmo-360.webp" alt=""></span>
+                <p class="txt"><span class="who">Olmo</span> · 2 citas propuestas <span class="arrow">→</span> esperan confirmación en el programa de gestión
+                  <span class="resp">Responsable: Lucía · están en la cola de revisión</span></p>
+                <span class="chip chip--warn">Para Lucía</span>
+              </div>
+              <div class="doc-item">
+                <span class="k-time">Jue 17:22</span>
+                <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt=""></span>
+                <p class="txt"><span class="who">Hugo</span> · Una paciente quiere hablar de la financiación de su tratamiento <span class="arrow">→</span> quedasteis en que la llamas el lunes por la mañana
+                  <span class="resp">Responsable: Marta · Hugo te dejó el resumen de la llamada</span></p>
+                <span class="chip chip--warn">Para ti</span>
+              </div>
+            </section>
+
+            <section class="doc-section" aria-label="La semana que viene">
+              <span class="k-label">La semana que viene</span>
+              <p class="next-week">Leo empieza a proponer las revisiones de septiembre. Así la vuelta de vacaciones se llena con tiempo y sin prisas.</p>
+            </section>
+
+            <footer class="doc-foot">
+              <p class="sign">Cualquier duda, escríbeme por WhatsApp y te la resuelvo. <b>Olmo, coordinador con IA de tu equipo</b></p>
+              <a class="btn btn--primary" href="#" aria-label="Descargar el informe en PDF">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 11 5 4 5-4"/><path d="M5 20h14"/></svg>
+                Descargar PDF</a>
+            </footer>
+
+          </div>
+        </article>
+      </section>
+    </div>
+
+    <!-- ===== Nota al pie ===== -->
+    <div class="banner banner--info foot-note" role="note">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+      <span>Este informe llega cada viernes a las 09:00 a tu WhatsApp. No necesitas entrar al panel.</span>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

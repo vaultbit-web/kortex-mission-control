@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Usuarios y permisos</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Usuarios y permisos */
+  .crumbs{display:flex; align-items:center; gap:8px}
+  .crumbs a{color:var(--ink-dim); text-decoration:none}
+  .crumbs a:hover{color:var(--teal); text-decoration:underline}
+  .crumbs .sep{color:var(--ink-dim); opacity:.6}
+
+  .table-wrap{overflow-x:auto; margin:0 -4px; padding:0 4px}
+  .table{min-width:780px}
+  .row-actions{display:flex; gap:8px; justify-content:flex-end; flex-wrap:nowrap}
+
+  .user-cell{display:flex; align-items:center; gap:12px}
+  .avatar-init{
+    width:42px; height:42px; border-radius:50%; background:var(--mint); color:var(--teal);
+    display:grid; place-items:center; font-weight:700; font-size:14px; flex:0 0 auto;
+  }
+  .avatar-init--alt{background:var(--info-bg); color:var(--info-ink)}
+  .avatar-init--ext{background:var(--neutral-bg); color:var(--ink-dim)}
+  .avatar-init--pending{
+    background:transparent; border:1.6px dashed rgba(10,31,46,.28); color:var(--ink-dim);
+  }
+  .user-cell .name{font-weight:600; font-size:14.5px}
+  .user-cell .mail{font-size:12.5px; color:var(--ink-dim)}
+  .role-cell b{display:block; font-size:14px; font-weight:600}
+  .role-cell span{font-size:12.5px; color:var(--ink-dim)}
+  tr.pending td{background:linear-gradient(90deg, rgba(217,150,46,.05), transparent 60%)}
+
+  /* Matriz de roles */
+  .matrix th, .matrix td{text-align:center}
+  .matrix th:first-child, .matrix td:first-child{text-align:left; font-weight:500}
+  .matrix td:first-child{font-size:14px}
+  .matrix thead th{white-space:nowrap}
+  .cell-mark{display:inline-grid; place-items:center; width:30px; height:30px; border-radius:50%}
+  .cell-mark--yes{background:var(--ok-bg); color:var(--ok-ink)}
+  .cell-mark--no{color:var(--ink-dim); opacity:.55; font-weight:600}
+  .cell-mark--lock{background:var(--neutral-bg); color:var(--ink-dim)}
+  .cell-note{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-dim); margin-top:4px}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; font-size:12.5px; color:var(--ink-dim)}
+  .legend span{display:inline-flex; align-items:center; gap:7px}
+  .legend .cell-mark{width:22px; height:22px}
+
+  .roles-grid{display:grid; grid-template-columns:1.9fr 1fr; gap:18px; align-items:start; margin-top:18px}
+  @media (max-width:980px){ .roles-grid{grid-template-columns:1fr} }
+
+  /* Tarjeta del registro de accesos, con Olmo anclado asomando */
+  .audit-card{position:relative; overflow:hidden; min-height:300px; display:flex; flex-direction:column; gap:10px}
+  .audit-card .mascot{
+    position:absolute; right:-38px; bottom:-52px; width:200px; pointer-events:none;
+    filter:drop-shadow(0 12px 24px rgba(10,31,46,.14));
+  }
+  .audit-card p{font-size:14px; color:var(--ink-dim); max-width:62%}
+  .audit-card .btn{align-self:flex-start; margin-top:auto; position:relative; z-index:2}
+
+  /* Modal estático de ejemplo */
+  .modal-demo{
+    background:rgba(10,31,46,.35); border-radius:var(--r-lg);
+    padding:46px 20px; display:grid; place-items:center; margin-top:18px;
+  }
+  .modal-demo .modal{max-width:480px}
+  .role-pick{display:flex; flex-direction:column; gap:8px}
+  .role-opt{
+    display:flex; gap:12px; align-items:flex-start; border:1px solid var(--line);
+    background:var(--white); border-radius:var(--r-sm); padding:12px 14px; cursor:pointer;
+  }
+  .role-opt input{margin-top:4px; accent-color:var(--teal); width:18px; height:18px; flex:0 0 auto}
+  .role-opt b{display:block; font-size:14.5px}
+  .role-opt span{font-size:12.5px; color:var(--ink-dim)}
+  .role-opt--on{border-color:var(--teal); box-shadow:0 0 0 3px rgba(15,61,53,.12)}
+
+  /* Nota del acceso reservado a Kórtex */
+  .support-note{display:flex; gap:14px; align-items:flex-start; margin-top:18px; padding-top:16px; border-top:1px solid var(--line)}
+  .support-note .ic{flex:0 0 auto; width:38px; height:38px; border-radius:50%; background:var(--neutral-bg); color:var(--ink-dim); display:grid; place-items:center}
+  .support-note b{display:block; font-size:14.5px}
+  .support-note p{font-size:13.5px; color:var(--ink-dim); margin-top:3px}
+
+  /* Solo lectura oculta visualmente (texto para lectores de pantalla) */
+  .k-hide{position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <nav class="k-label crumbs" aria-label="Estás en">
+          <a href="11-ajustes-clinica.html">Ajustes</a>
+          <span class="sep" aria-hidden="true">·</span>
+          <span aria-current="page" style="color:var(--teal)">Usuarios y permisos</span>
+        </nav>
+        <h1 style="margin-top:6px">Usuarios y permisos</h1>
+        <p class="h-sub">Quién puede entrar aquí, qué puede ver cada persona y cuándo entró por última vez.</p>
+      </div>
+      <a class="btn btn--primary" href="#invitar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="8" r="3.4"/><path d="M4 19.5c.9-3.2 3.2-4.8 6-4.8s5.1 1.6 6 4.8"/><path d="M18.5 8.5v6M15.5 11.5h6"/></svg>
+        Invitar a alguien</a>
+    </header>
+
+    <!-- ===== Usuarios ===== -->
+    <section class="card card--lg" aria-labelledby="t-usuarios">
+      <div class="card-title">
+        <span class="k-label" id="t-usuarios">Personas con acceso · 3 activas · 1 invitación pendiente</span>
+        <span class="k-time">Martes, 21 de julio · 10:47</span>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <caption class="k-label" style="text-align:left; padding-bottom:10px">Usuarios de Clínica Dental Aurora</caption>
+          <thead>
+            <tr>
+              <th scope="col">Persona</th>
+              <th scope="col">Rol</th>
+              <th scope="col">Último acceso</th>
+              <th scope="col">Estado</th>
+              <th scope="col"><span class="k-hide">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <span class="avatar-init" aria-hidden="true">MA</span>
+                  <div>
+                    <div class="name">Marta Andrés</div>
+                    <div class="mail">marta@clinicaaurora.es</div>
+                  </div>
+                </div>
+              </td>
+              <td class="role-cell"><b>Gerente</b><span>Acceso completo</span></td>
+              <td><span class="k-time">Hoy · 10:47</span></td>
+              <td><span class="chip chip--ok">Activa</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn--ghost btn--sm">Ver detalle<span class="k-hide"> de Marta Andrés</span></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <span class="avatar-init avatar-init--alt" aria-hidden="true">LF</span>
+                  <div>
+                    <div class="name">Lucía Fernández</div>
+                    <div class="mail">recepcion@clinicaaurora.es</div>
+                  </div>
+                </div>
+              </td>
+              <td class="role-cell"><b>Recepción</b><span>Cola, conversaciones y agenda</span></td>
+              <td><span class="k-time">Hoy · 10:32</span></td>
+              <td><span class="chip chip--ok">Activa</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn--ghost btn--sm">Ver detalle<span class="k-hide"> de Lucía Fernández</span></button>
+                  <button class="btn btn--ghost btn--sm">Quitar acceso<span class="k-hide"> a Lucía Fernández</span></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <span class="avatar-init avatar-init--ext" aria-hidden="true">AV</span>
+                  <div>
+                    <div class="name">Andrés Vidal</div>
+                    <div class="mail">avidal@datosyconfianza.es</div>
+                  </div>
+                </div>
+              </td>
+              <td class="role-cell"><b>Delegado de protección de datos</b><span>Solo Cumplimiento, solo lectura</span></td>
+              <td><span class="k-time">12 de julio</span></td>
+              <td><span class="chip chip--neutral">Externo</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn--ghost btn--sm">Ver detalle<span class="k-hide"> de Andrés Vidal</span></button>
+                  <button class="btn btn--ghost btn--sm">Quitar acceso<span class="k-hide"> a Andrés Vidal</span></button>
+                </div>
+              </td>
+            </tr>
+            <tr class="pending">
+              <td>
+                <div class="user-cell">
+                  <span class="avatar-init avatar-init--pending" aria-hidden="true">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="m4 7 8 6 8-6"/></svg>
+                  </span>
+                  <div>
+                    <div class="name">dra.riera@clinicaaurora.es</div>
+                    <div class="mail">Aún no ha creado su acceso</div>
+                  </div>
+                </div>
+              </td>
+              <td class="role-cell"><b>Odontóloga</b><span>Rol clínico</span></td>
+              <td><span class="k-time">Nunca</span></td>
+              <td><span class="chip chip--warn">Invitación enviada ayer, 20 de julio</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn--secondary btn--sm">Reenviar<span class="k-hide"> la invitación a dra.riera@clinicaaurora.es</span></button>
+                  <button class="btn btn--ghost btn--sm">Anular<span class="k-hide"> la invitación a dra.riera@clinicaaurora.es</span></button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="support-note">
+        <span class="ic" aria-hidden="true">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>
+        </span>
+        <div>
+          <b>El soporte de Kórtex no entra por su cuenta</b>
+          <p>Si necesitamos mirar algo para ayudarte, te pedimos permiso y tú lo concedes por un tiempo limitado. Ese permiso caduca solo y queda anotado en el registro de accesos.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Qué puede hacer cada rol ===== -->
+    <h2 class="mt-32">Qué puede hacer cada rol</h2>
+    <p class="h-sub">Los roles están predefinidos para proteger los datos de tus pacientes. El acceso de cada persona queda registrado.</p>
+
+    <div class="roles-grid">
+      <section class="card card--lg" aria-labelledby="t-roles">
+        <div class="card-title">
+          <span class="k-label" id="t-roles">Permisos por rol · No editable, es tu garantía</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table matrix">
+            <caption class="k-label" style="text-align:left; padding-bottom:10px">Comparativa de los 4 roles</caption>
+            <thead>
+              <tr>
+                <th scope="col">Área</th>
+                <th scope="col">Gerente</th>
+                <th scope="col">Recepción</th>
+                <th scope="col">Clínico</th>
+                <th scope="col">Prot. de datos</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Inicio y métricas</td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--no" role="img" aria-label="Sin acceso">–</span></td>
+              </tr>
+              <tr>
+                <td>Cola y conversaciones</td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td>
+                  <span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso, solo lectura"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span>
+                  <span class="cell-note">Solo lectura</span>
+                </td>
+                <td><span class="cell-mark cell-mark--no" role="img" aria-label="Sin acceso">–</span></td>
+              </tr>
+              <tr>
+                <td>Agenda</td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--no" role="img" aria-label="Sin acceso">–</span></td>
+              </tr>
+              <tr>
+                <td>Configurar agentes</td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--no" role="img" aria-label="Sin acceso">–</span></td>
+                <td><span class="cell-mark cell-mark--no" role="img" aria-label="Sin acceso">–</span></td>
+                <td><span class="cell-mark cell-mark--no" role="img" aria-label="Sin acceso">–</span></td>
+              </tr>
+              <tr>
+                <td>Consumo y facturas</td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--lock" role="img" aria-label="Reservado al rol Gerente"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--lock" role="img" aria-label="Reservado al rol Gerente"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--no" role="img" aria-label="Sin acceso">–</span></td>
+              </tr>
+              <tr>
+                <td>Cumplimiento</td>
+                <td><span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--lock" role="img" aria-label="Reservado a Gerente y Protección de datos"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span></td>
+                <td><span class="cell-mark cell-mark--lock" role="img" aria-label="Reservado a Gerente y Protección de datos"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span></td>
+                <td>
+                  <span class="cell-mark cell-mark--yes" role="img" aria-label="Con acceso, solo lectura"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span>
+                  <span class="cell-note">Solo lectura</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="legend">
+          <span><span class="cell-mark cell-mark--yes"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 5 5 9-11"/></svg></span> Puede entrar</span>
+          <span><span class="cell-mark cell-mark--no">–</span> No forma parte de su trabajo</span>
+          <span><span class="cell-mark cell-mark--lock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg></span> Reservado para proteger datos</span>
+        </div>
+      </section>
+
+      <section class="card card--lg audit-card" aria-labelledby="t-registro">
+        <span class="k-label" id="t-registro">Todo queda anotado</span>
+        <h2 style="font-size:22px">Cada acceso deja huella</h2>
+        <p>Olmo anota quién entra, cuándo y qué consulta. Tu delegado de protección de datos puede revisarlo y exportarlo desde Cumplimiento.</p>
+        <a class="btn btn--secondary btn--sm" href="08-cumplimiento.html">Ver el registro de accesos</a>
+        <img class="mascot" src="assets/mascotas/olmo-720.webp" alt="">
+      </section>
+    </div>
+
+    <!-- ===== Ejemplo estático: modal de invitación ===== -->
+    <h2 class="mt-32" id="invitar">Así se invita a alguien</h2>
+    <p class="h-sub">Ejemplo de la ventana que se abre al pulsar "Invitar a alguien".</p>
+
+    <div class="modal-demo" role="group" aria-label="Ejemplo de la ventana de invitación">
+      <div class="modal" role="group" aria-labelledby="t-modal">
+        <h3 id="t-modal">Invitar a alguien</h3>
+        <p>Elige el rol con calma: define exactamente qué podrá ver esta persona.</p>
+
+        <div class="field">
+          <label for="inv-mail">Correo de trabajo</label>
+          <input class="input" type="email" id="inv-mail" placeholder="nombre@clinicaaurora.es" autocomplete="off">
+        </div>
+
+        <fieldset class="field" style="border:none">
+          <legend style="font-size:13.5px; font-weight:600; margin-bottom:8px">Rol</legend>
+          <div class="role-pick">
+            <label class="role-opt">
+              <input type="radio" name="rol" value="gerente">
+              <span><b>Gerente</b><span>Acceso completo, incluidos consumo, facturas y cumplimiento.</span></span>
+            </label>
+            <label class="role-opt role-opt--on">
+              <input type="radio" name="rol" value="recepcion" checked>
+              <span><b>Recepción</b><span>Cola de revisión, conversaciones y agenda. Sin facturas ni configuración.</span></span>
+            </label>
+            <label class="role-opt">
+              <input type="radio" name="rol" value="clinico">
+              <span><b>Clínico</b><span>Agenda y métricas, conversaciones solo en lectura.</span></span>
+            </label>
+            <label class="role-opt">
+              <input type="radio" name="rol" value="dpd">
+              <span><b>Delegado de protección de datos</b><span>Solo el módulo de Cumplimiento, en modo lectura.</span></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="banner banner--info" role="note" style="margin-bottom:20px">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="flex:0 0 auto; margin-top:1px" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8.2h.01M12 11.5V16"/></svg>
+          <span>Recibirá un correo con un enlace para crear su acceso. El enlace caduca en 48 horas.</span>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn--ghost">Cancelar</button>
+          <button class="btn btn--primary">Enviar invitación</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

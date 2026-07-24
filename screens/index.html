@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Diseño del Centro de Operaciones · Entrega v1</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  .wrap{max-width:1080px; margin:0 auto; padding:56px 24px 80px}
+  .hero{position:relative; overflow:hidden; background:var(--paper); border:1px solid var(--line); border-radius:var(--r-lg); box-shadow:var(--shadow); padding:40px 44px; margin-bottom:28px}
+  .hero .mascot{position:absolute; right:-30px; bottom:-56px; width:250px; filter:drop-shadow(0 14px 28px rgba(10,31,46,.16))}
+  .hero h1{font-size:40px; max-width:70%}
+  .hero p{color:var(--ink-dim); margin-top:10px; max-width:60%}
+  .list{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media (max-width:900px){ .list{grid-template-columns:1fr} .hero h1,.hero p{max-width:100%} .hero .mascot{display:none} }
+  .shot{display:flex; align-items:center; gap:16px; background:var(--paper); border:1px solid var(--line); border-radius:var(--r-md); box-shadow:var(--shadow); padding:18px 20px; text-decoration:none; color:var(--ink)}
+  .shot:hover{box-shadow:var(--shadow-lift); transform:translateY(-1px)}
+  .shot .num{font-family:var(--mono); font-size:12px; color:var(--teal); border:1px solid var(--line); border-radius:999px; width:38px; height:38px; display:grid; place-items:center; flex:0 0 auto}
+  .shot b{display:block; font-size:15.5px}
+  .shot span{font-size:13px; color:var(--ink-dim)}
+  .note{margin-top:26px; font-size:13.5px; color:var(--ink-dim)}
+</style>
+</head>
+<body data-vertical="dental">
+<div class="wrap">
+  <header class="hero">
+    <p class="k-label k-label--teal">Entrega de diseño · v1 · Cliente ficticio: Clínica Dental Aurora</p>
+    <h1 style="margin-top:8px">El Centro de Operaciones, pantalla a pantalla</h1>
+    <p>Alta fidelidad sobre el sistema de diseño de la marca (tokens reales del sitio, mascotas reales). Abre cada pantalla y redimensiona la ventana para ver la versión móvil. Nada de esto es la web pública: es el producto.</p>
+    <img class="mascot" src="assets/mascotas/olmo-1100.webp" alt="">
+  </header>
+
+  <div class="list">
+    <a class="shot" href="01-inicio.html"><span class="num">01</span><span><b>Inicio</b><span>El "¿está todo bien?" del gerente: estado, KPIs, actividad, euros, Olmo</span></span></a>
+    <a class="shot" href="02-cola-revision.html"><span class="num">02</span><span><b>Cola de revisión</b><span>La pantalla diaria de recepción: 4 prioridades y modo supervisado</span></span></a>
+    <a class="shot" href="03-conversacion.html"><span class="num">03</span><span><b>Conversaciones</b><span>Lista con filtros y detalle de llamada con transcripción y checks legales</span></span></a>
+    <a class="shot" href="04-equipo.html"><span class="num">04</span><span><b>Mi equipo</b><span>Tarjetas héroe con mascotas, estados, ampliación y ficha de agente</span></span></a>
+    <a class="shot" href="05-onboarding.html"><span class="num">05</span><span><b>Alta guiada</b><span>El asistente de 8 pasos; paso 4: conectar WhatsApp sin perder tu número</span></span></a>
+    <a class="shot" href="06-agenda.html"><span class="num">06</span><span><b>Agenda y citas</b><span>Semana con citas de agentes, propuestas por confirmar y lista de espera</span></span></a>
+    <a class="shot" href="06b-integraciones.html"><span class="num">07</span><span><b>Conexiones</b><span>Catálogo completo por vertical: activas, listas, bajo proyecto y lo que no hacemos</span></span></a>
+    <a class="shot" href="07-consumo.html"><span class="num">08</span><span><b>Consumo y plan</b><span>Barras de franquicia, topes sin sorpresas y ampliación de plan</span></span></a>
+    <a class="shot" href="08-cumplimiento.html"><span class="num">09</span><span><b>Cumplimiento</b><span>La pantalla del DPD: garantías, auditoría exportable, consentimientos</span></span></a>
+    <a class="shot" href="09-informe-olmo.html"><span class="num">10</span><span><b>Informe de Olmo</b><span>El WhatsApp del viernes 09:00 y su versión documento</span></span></a>
+    <a class="shot" href="10-configuracion-agente.html"><span class="num">11</span><span><b>Configurar a Hugo</b><span>Información, tarifas, tono con aviso de IA fijo y límites como garantía</span></span></a>
+  </div>
+
+  <h2 style="font-family:var(--serif); font-weight:400; font-size:24px; margin:34px 0 14px">Estructura completa y variantes por vertical</h2>
+  <div class="list">
+    <a class="shot" href="00-acceso.html"><span class="num">12</span><span><b>Acceso</b><span>Entrada, recuperación de contraseña y código de verificación</span></span></a>
+    <a class="shot" href="11-ajustes-clinica.html"><span class="num">13</span><span><b>Ajustes de la clínica</b><span>El hub: datos, festivos, sedes y accesos a todo lo demás</span></span></a>
+    <a class="shot" href="12-usuarios-roles.html"><span class="num">14</span><span><b>Usuarios y permisos</b><span>Quién entra y qué puede hacer cada rol, con invitaciones</span></span></a>
+    <a class="shot" href="13-notificaciones.html"><span class="num">15</span><span><b>Avisos y notificaciones</b><span>Últimos avisos y preferencias por persona y canal</span></span></a>
+    <a class="shot" href="14-estados-sistema.html"><span class="num">16</span><span><b>Estados del sistema</b><span>Cargando, error, sin conexión, 404 y sin permiso: nunca un callejón</span></span></a>
+    <a class="shot" href="15-primer-dia.html"><span class="num">17</span><span><b>El primer día</b><span>El panel recién activado: checklist de arranque y ceros amables</span></span></a>
+    <a class="shot" href="16-agenda-dia.html"><span class="num">18</span><span><b>Agenda: vista Día</b><span>La parrilla del día con huecos libres ofrecibles a la lista de espera</span></span></a>
+    <a class="shot" href="17-configuracion-nora.html"><span class="num">19</span><span><b>Configurar a Nora</b><span>La prueba de que cada agente es una plantilla distinta del mismo motor</span></span></a>
+    <a class="shot" href="18-inicio-residencias.html"><span class="num">20</span><span><b>Inicio · Residencias</b><span>Los Almendros: familias, admisiones y cero datos de salud por boca de la IA</span></span></a>
+    <a class="shot" href="19-autorizados-residencias.html"><span class="num">21</span><span><b>Familias autorizadas</b><span>La pantalla legal estrella: quién puede saber qué de cada residente</span></span></a>
+    <a class="shot" href="20-preparacion-imagen.html"><span class="num">22</span><span><b>Pruebas del día · Imagen</b><span>Teo confirma preparaciones; una preparación fallida es una máquina parada</span></span></a>
+  </div>
+
+  <p class="note">Sistema de diseño: <code>kortex-ds.css</code> (tokens exactos del sitio: bone/paper/ink/teal, Instrument Serif itálica en cifras, JetBrains Mono en etiquetas, radios 28/20/14). Las mascotas se cargan desde <code>Kortex/assets/mascotas/</code>: mantén la carpeta <code>diseno-plataforma</code> junto a <code>Kortex</code> para verlas.</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Preparación de pruebas</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Preparación de pruebas (vertical imagen) */
+  .prep-grid{display:grid; grid-template-columns:minmax(0,1.62fr) minmax(290px,1fr); gap:18px; margin-top:22px; align-items:start}
+  @media (max-width:1100px){ .prep-grid{grid-template-columns:1fr} }
+  .prep-grid>*{min-width:0}
+
+  .kpi .chip{margin-top:10px}
+
+  .table-wrap{overflow-x:auto; margin:0 -6px; padding:0 6px}
+  .prep-table{min-width:760px}
+  .prep-table td{font-size:14px}
+  .prep-table .prueba{font-weight:600}
+  .prep-table .paciente small{display:block; font-family:var(--mono); font-size:11.5px; color:var(--ink-dim); letter-spacing:.06em}
+  .prep-table .estado-sub{display:block; font-size:13px; line-height:1.45; color:var(--ink-dim); margin-top:5px; max-width:230px}
+  /* Targets táctiles de 44px también en los botones pequeños de la tabla */
+  .prep-table .btn--sm, .table-foot .btn--sm{min-height:44px; display:inline-flex; align-items:center}
+  /* Los estados no dependen solo del color: icono + texto */
+  .chip svg{margin-right:6px; flex:0 0 auto}
+  .chip{display:inline-flex; align-items:center}
+
+  /* Leyenda de estados de preparación */
+  .leyenda{display:flex; gap:18px; flex-wrap:wrap; align-items:center; padding:14px 0 2px; border-top:1px solid var(--line); margin-top:16px}
+  .leyenda .item{display:flex; gap:8px; align-items:center; font-size:13px; color:var(--ink-dim)}
+  .leyenda .item i{width:10px; height:10px; border-radius:50%; flex:0 0 auto}
+  .leyenda .ok i{background:var(--ok-dot)}
+  .leyenda .warn i{background:var(--warn-dot)}
+  .leyenda .urg i{background:var(--urgent-dot)}
+
+  /* Fila que requiere llamada: borde urgente, sin depender solo del color */
+  .row--urgent td{background:linear-gradient(90deg, rgba(194,74,63,.07), rgba(194,74,63,.02))}
+  .row--urgent td:first-child{border-left:5px solid var(--urgent-dot); border-top-left-radius:var(--r-sm)}
+  .row--urgent-note td{background:rgba(194,74,63,.03); border-left:5px solid var(--urgent-dot); padding-top:0}
+  .nota-clinica{
+    display:flex; gap:10px; align-items:flex-start;
+    background:var(--white); border:1px solid rgba(194,74,63,.28); border-radius:var(--r-sm);
+    padding:12px 14px; font-size:13.5px; color:var(--ink);
+  }
+  .nota-clinica svg{flex:0 0 auto; color:var(--urgent-ink); margin-top:2px}
+  .nota-clinica strong{color:var(--urgent-ink)}
+
+  .table-foot{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding-top:14px; border-top:1px solid var(--line); margin-top:4px}
+
+  /* Panel derecho: cómo trabaja Teo, mascota GRANDE anclada */
+  .teo-card{position:relative; overflow:hidden; min-height:330px}
+  .teo-card .mascot{
+    position:absolute; right:-40px; bottom:-52px; width:230px; pointer-events:none;
+    filter:drop-shadow(0 12px 24px rgba(10,31,46,.14));
+  }
+  .how-steps{list-style:none; display:flex; flex-direction:column; gap:0; margin-top:4px; max-width:66%}
+  .how-steps li{display:grid; grid-template-columns:26px 1fr; gap:10px; padding:9px 0; font-size:14px; position:relative}
+  .how-steps li:not(:last-child)::before{content:""; position:absolute; left:12px; top:34px; bottom:-2px; width:2px; background:var(--line)}
+  .how-steps .n{
+    width:26px; height:26px; border-radius:50%; background:var(--info-bg); color:var(--teal);
+    display:grid; place-items:center; font-family:var(--mono); font-size:11px; font-weight:600; z-index:1;
+  }
+  .how-steps li.escala .n{background:var(--warn-bg); color:var(--warn-ink)}
+  .teo-card .garantia{border-top:1px dashed var(--line); margin-top:8px; padding-top:12px; font-size:13px; max-width:64%}
+  .teo-card .garantia strong{color:var(--teal)}
+
+  /* Tarjeta de Vega: banda teal con mascota anclada */
+  .vega-card{
+    position:relative; overflow:hidden; background:var(--teal); color:var(--white);
+    border-radius:var(--r-lg); padding:22px 24px; box-shadow:var(--shadow); min-height:180px;
+  }
+  .vega-card .mascot{position:absolute; left:-26px; bottom:-46px; width:180px; filter:drop-shadow(0 10px 22px rgba(0,0,0,.25)); pointer-events:none}
+  .vega-card .body{margin-left:140px}
+  .vega-card h3{font-family:var(--serif); font-weight:400; font-size:22px}
+  .vega-card p{font-size:13.5px; opacity:.88; margin-top:4px}
+  .vega-card .vega-kpi{margin-top:14px; display:flex; align-items:baseline; gap:10px}
+  .vega-card .vega-kpi b{font-family:var(--serif); font-style:italic; font-weight:400; font-size:42px; color:var(--mint); line-height:1}
+  .vega-card .vega-kpi span{font-family:var(--mono); font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:rgba(255,255,255,.75); max-width:180px; line-height:1.5}
+
+  @media (max-width:980px){
+    .how-steps{max-width:100%}
+    .teo-card{min-height:0; padding-bottom:150px}
+    .teo-card .mascot{width:190px; right:-34px; bottom:-44px}
+    .teo-card .garantia{max-width:100%}
+    .vega-card .mascot{width:140px; left:-22px; bottom:-36px}
+    .vega-card .body{margin-left:104px}
+    .prep-table .estado-sub{max-width:200px}
+  }
+</style>
+</head>
+<body data-vertical="imagen">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">NS</div>
+      <div>
+        <div class="clinic">Centro Radiológico Meridiana</div>
+        <div class="who">Nuria Salas · Coordinadora</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Martes, 21 de julio · 10:47</p>
+        <h1>Preparación de pruebas · Miércoles 22</h1>
+        <p class="h-sub">Teo confirma que cada paciente llega preparado. Una preparación fallida es una máquina parada.</p>
+      </div>
+      <a class="btn btn--secondary" href="03-conversacion.html">Ver las conversaciones de Teo</a>
+    </header>
+
+    <!-- KPIs de mañana -->
+    <section class="kpi-row" aria-label="Resumen de las pruebas de mañana">
+      <div class="kpi"><b>22</b><span class="k-label">Pruebas mañana</span></div>
+      <div class="kpi"><b>18</b><span class="k-label">Preparaciones confirmadas</span><span class="chip chip--ok">Confirmadas y comprendidas</span></div>
+      <div class="kpi"><b>3</b><span class="k-label">Pendientes de respuesta</span><span class="chip chip--warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>Teo insiste hoy</span></div>
+      <div class="kpi"><b>1</b><span class="k-label">Requiere llamada</span><span class="chip chip--urgent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.2h.01"/></svg>Aviso al técnico</span></div>
+    </section>
+
+    <div class="prep-grid">
+
+      <!-- Tabla de pruebas de mañana -->
+      <section class="card card--lg" aria-label="Pruebas de mañana, miércoles 22">
+        <div class="card-title">
+          <span class="k-label">Pruebas de mañana · Miércoles 22 de julio</span>
+          <span class="chip chip--info">18 de 22 listas</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table prep-table">
+            <caption class="k-label" style="text-align:left; padding:0 12px 10px">Estado de preparación por paciente</caption>
+            <thead>
+              <tr>
+                <th scope="col">Hora</th>
+                <th scope="col">Prueba</th>
+                <th scope="col">Paciente</th>
+                <th scope="col">Preparación</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="k-time">08:15</span></td>
+                <td class="prueba">RM con contraste</td>
+                <td class="paciente">Carmen Vidal<small>···4821L</small></td>
+                <td>Ayuno de 6 h y cuestionario de seguridad</td>
+                <td><span class="chip chip--ok">Confirmada y comprendida</span></td>
+                <td><a class="btn btn--ghost btn--sm" href="03-conversacion.html" aria-label="Ver la conversación de Carmen Vidal">Ver conversación</a></td>
+              </tr>
+              <tr>
+                <td><span class="k-time">08:45</span></td>
+                <td class="prueba">TAC abdominal con ayunas</td>
+                <td class="paciente">José Andreu<small>···0374F</small></td>
+                <td>Ayuno de 6 h</td>
+                <td><span class="chip chip--ok">Confirmada y comprendida</span></td>
+                <td><a class="btn btn--ghost btn--sm" href="03-conversacion.html" aria-label="Ver la conversación de José Andreu">Ver conversación</a></td>
+              </tr>
+              <tr class="row--urgent">
+                <td><span class="k-time">09:30</span></td>
+                <td class="prueba">RM con contraste</td>
+                <td class="paciente">Ángel Robles<small>···6519T</small></td>
+                <td>Cuestionario de seguridad RM</td>
+                <td>
+                  <span class="chip chip--urgent"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.2h.01"/></svg>Requiere llamada</span>
+                  <span class="estado-sub">Respondió sí a "llevo marcapasos" en el cuestionario. Aviso inmediato enviado al técnico a las 10:12.</span>
+                </td>
+                <td><a class="btn btn--primary btn--sm" href="tel:612908344" aria-label="Llamar ahora a Ángel Robles al 612 90 83 44">Llamar ahora</a></td>
+              </tr>
+              <tr class="row--urgent-note">
+                <td colspan="6">
+                  <div class="nota-clinica" role="note">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r=".4"/></svg>
+                    <p><strong>Teo NO valora si puede hacerse la prueba:</strong> detecta la respuesta y avisa al técnico. La decisión es clínica.</p>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="k-time">10:00</span></td>
+                <td class="prueba">Mamografía</td>
+                <td class="paciente">Pilar Cano<small>···2963D</small></td>
+                <td>Sin preparación</td>
+                <td><span class="chip chip--ok">Confirmada y comprendida</span></td>
+                <td><a class="btn btn--ghost btn--sm" href="03-conversacion.html" aria-label="Ver la conversación de Pilar Cano">Ver conversación</a></td>
+              </tr>
+              <tr>
+                <td><span class="k-time">10:30</span></td>
+                <td class="prueba">TAC abdominal con ayunas</td>
+                <td class="paciente">Rosa Ferrer<small>···8140Q</small></td>
+                <td>Ayuno de 6 h</td>
+                <td>
+                  <span class="chip chip--warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>Sin respuesta</span>
+                  <span class="estado-sub">Teo la llamará hoy a las 17:00.</span>
+                </td>
+                <td><a class="btn btn--ghost btn--sm" href="03-conversacion.html" aria-label="Ver la conversación de Rosa Ferrer">Ver conversación</a></td>
+              </tr>
+              <tr>
+                <td><span class="k-time">11:15</span></td>
+                <td class="prueba">RX tórax</td>
+                <td class="paciente">Marcos Gil<small>···5507B</small></td>
+                <td>Sin preparación</td>
+                <td><span class="chip chip--ok">Confirmada y comprendida</span></td>
+                <td><a class="btn btn--ghost btn--sm" href="03-conversacion.html" aria-label="Ver la conversación de Marcos Gil">Ver conversación</a></td>
+              </tr>
+              <tr>
+                <td><span class="k-time">12:00</span></td>
+                <td class="prueba">RM con contraste</td>
+                <td class="paciente">Elena Sanz<small>···7286M</small></td>
+                <td>Ayuno de 6 h y cuestionario de seguridad</td>
+                <td>
+                  <span class="chip chip--warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>Pendiente de respuesta</span>
+                  <span class="estado-sub">Recordatorio reenviado por Teo a las 09:40.</span>
+                </td>
+                <td><a class="btn btn--ghost btn--sm" href="03-conversacion.html" aria-label="Ver la conversación de Elena Sanz">Ver conversación</a></td>
+              </tr>
+              <tr>
+                <td><span class="k-time">12:45</span></td>
+                <td class="prueba">Mamografía</td>
+                <td class="paciente">Teresa Ibáñez<small>···1938H</small></td>
+                <td>Sin preparación</td>
+                <td>
+                  <span class="chip chip--warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5"/><path d="M12 16.2h.01"/></svg>Sin respuesta</span>
+                  <span class="estado-sub">Teo la llamará hoy a las 17:00.</span>
+                </td>
+                <td><a class="btn btn--ghost btn--sm" href="03-conversacion.html" aria-label="Ver la conversación de Teresa Ibáñez">Ver conversación</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <section class="leyenda" aria-label="Qué significa cada estado de preparación">
+          <span class="item ok"><i aria-hidden="true"></i>Confirmada y comprendida: el paciente ha entendido la preparación.</span>
+          <span class="item warn"><i aria-hidden="true"></i>Sin respuesta o pendiente: Teo insiste hoy y llama la víspera.</span>
+          <span class="item urg"><i aria-hidden="true"></i>Requiere llamada: pasado al técnico, decide una persona.</span>
+        </section>
+        <div class="table-foot">
+          <span class="muted" style="font-size:13px">Mostrando las 8 primeras pruebas de la mañana.</span>
+          <a class="btn btn--secondary btn--sm" href="#">Ver las 22 pruebas del miércoles</a>
+        </div>
+      </section>
+
+      <!-- Panel derecho -->
+      <div>
+        <section class="card card--lg teo-card" aria-label="Cómo trabaja Teo">
+          <div class="card-title">
+            <span class="k-label">Cómo trabaja Teo</span>
+            <span class="badge-state" style="position:static">Activo</span>
+          </div>
+          <ol class="how-steps">
+            <li><span class="n" aria-hidden="true">1</span><span>Envía las instrucciones de preparación por WhatsApp en el momento de citar.</span></li>
+            <li><span class="n" aria-hidden="true">2</span><span>Pide confirmación de que se han entendido 48 horas antes de la prueba.</span></li>
+            <li><span class="n" aria-hidden="true">3</span><span>Si no hay respuesta, reenvía el recordatorio.</span></li>
+            <li><span class="n" aria-hidden="true">4</span><span>La víspera, llama por teléfono a quien sigue sin responder.</span></li>
+            <li class="escala"><span class="n" aria-hidden="true">5</span><span>Cualquier duda médica la pasa al técnico. Teo nunca decide.</span></li>
+          </ol>
+          <p class="garantia"><strong>Garantía:</strong> Teo se presenta siempre como inteligencia artificial y no da consejo clínico.</p>
+          <img class="mascot" src="assets/mascotas/teo-720.webp" alt="Teo, agente de preparación de pruebas">
+        </section>
+
+        <section class="vega-card mt-16" aria-label="Vega, citación sobre huecos de máquina">
+          <img class="mascot" src="assets/mascotas/vega-720.webp" alt="Vega, agente de citación">
+          <div class="body">
+            <h3>Vega cita sobre los huecos reales de tus máquinas</h3>
+            <p>Cuando una preparación falla o alguien cancela, Vega ofrece ese hueco a la lista de espera.</p>
+            <div class="vega-kpi">
+              <b>4</b>
+              <span>Huecos de máquina recuperados esta semana</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

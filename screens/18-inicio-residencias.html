@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Inicio · Residencia</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Inicio (vertical residencias) */
+  .status-line{display:flex; align-items:center; gap:10px; margin-top:8px; font-size:15px}
+  .status-line .dot{width:10px; height:10px; border-radius:50%; background:var(--ok-dot); box-shadow:0 0 0 4px var(--ok-bg)}
+  .home-grid{display:grid; grid-template-columns:1.65fr 1fr; gap:18px; margin-top:22px; align-items:start}
+  @media (max-width:980px){ .home-grid{grid-template-columns:1fr} }
+  .feed-filter{display:flex; gap:8px; flex-wrap:wrap}
+  .feed-filter button{
+    border:1px solid var(--line); background:var(--white); border-radius:999px;
+    padding:6px 14px; font-size:12.5px; font-weight:600; color:var(--ink-dim);
+  }
+  .feed-filter button.active{background:var(--teal); color:#fff; border-color:var(--teal)}
+
+  /* Tarjeta de ingresos (estimación) + consumo, como en Inicio dental */
+  .euro-card b{font-family:var(--serif); font-style:italic; font-weight:400; font-size:44px; color:var(--teal); line-height:1}
+  .euro-card .how{font-size:12.5px; margin-top:10px}
+  .consumo-mini{margin-top:18px; padding-top:16px; border-top:1px solid var(--line)}
+
+  /* Tarjeta "Familias al día" */
+  .fam-card b.big{font-family:var(--serif); font-style:italic; font-weight:400; font-size:44px; color:var(--teal); line-height:1; display:block}
+  .fam-card .fam-sub{font-size:13.5px; color:var(--ink-dim); margin-top:6px}
+  .fam-list{margin-top:18px; padding-top:6px; border-top:1px solid var(--line)}
+  .fam-list .fam-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:12px 0; border-bottom:1px solid var(--line); font-size:14px;
+  }
+  .fam-list .fam-row:last-child{border-bottom:none}
+  .fam-list .fam-row strong{font-family:var(--serif); font-style:italic; font-weight:400; font-size:22px; color:var(--teal)}
+  /* Fila enlazada: el objetivo táctil es la fila entera (44px), no el chip */
+  .fam-list a.fam-row{
+    text-decoration:none; color:inherit; min-height:44px;
+    margin:0 -10px; padding-left:10px; padding-right:10px; border-radius:14px;
+  }
+  .fam-list a.fam-row:hover{background:rgba(15,61,53,.05)}
+  .fam-list a.fam-row:focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+  .fam-card .how{font-size:12.5px; margin-top:6px}
+</style>
+</head>
+<body data-vertical="residencias">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="18-inicio-residencias.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="19-autorizados-residencias.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="M12 15.3s-3-1.9-3-3.9c0-1.1.9-1.9 1.8-1.9.6 0 1 .3 1.2.7.2-.4.6-.7 1.2-.7.9 0 1.8.8 1.8 1.9 0 2-3 3.9-3 3.9Z"/></svg>
+        Familias autorizadas</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">CR</div>
+      <div>
+        <div class="clinic">Residencia Los Almendros</div>
+        <div class="who">Carmen Ruiz · Directora</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Martes, 21 de julio · 10:47</p>
+        <h1>Buenos días, Carmen</h1>
+        <p class="status-line"><span class="dot" aria-hidden="true"></span> <span>Todo en orden. <strong>3 asuntos</strong> esperan a tu equipo.</span></p>
+      </div>
+      <a class="btn btn--secondary" href="09-informe-olmo.html">Ver el último informe de Olmo</a>
+    </header>
+
+    <!-- KPIs: máximo 6, cifras serif itálica -->
+    <section class="kpi-row" aria-label="Resumen de hoy">
+      <div class="kpi">
+        <b>24</b><span class="k-label">Llamadas de familias atendidas hoy</span>
+        <span class="delta up">23 de 24 atendidas a la primera</span>
+      </div>
+      <div class="kpi">
+        <b>6</b><span class="k-label">Visitas coordinadas para el fin de semana</span>
+        <span class="delta">Sábado y domingo, sin cruces de horario</span>
+      </div>
+      <div class="kpi">
+        <b>2</b><span class="k-label">Solicitudes de plaza respondidas</span>
+        <span class="delta up">Las dos en menos de 2 horas</span>
+      </div>
+      <div class="kpi">
+        <b>3</b><span class="k-label">Pendientes de revisión</span>
+        <span class="delta">1 es para enfermería</span>
+      </div>
+    </section>
+
+    <div class="home-grid">
+      <!-- Actividad en directo -->
+      <section class="card card--lg" aria-label="Actividad en directo">
+        <div class="card-title">
+          <span class="k-label">Actividad en directo</span>
+          <div class="feed-filter" role="tablist" aria-label="Filtrar por agente">
+            <button class="active">Todos</button>
+            <button>Celia</button>
+            <button>Martín</button>
+            <button>Alba</button>
+            <button>Unai</button>
+          </div>
+        </div>
+        <div class="feed">
+          <div class="feed-item">
+            <span class="k-time">10:38</span>
+            <span class="avatar"><img src="assets/mascotas/celia-360.webp" alt=""></span>
+            <p class="txt"><span class="who">Celia</span> · Llamada de la hija de un residente <span class="arrow">→</span> informada con lo aprobado por el personal (actividades y menú)</p>
+            <span class="chip chip--ok">Atendida a la primera</span>
+          </div>
+          <div class="feed-item">
+            <span class="k-time">10:12</span>
+            <span class="avatar"><img src="assets/mascotas/celia-360.webp" alt=""></span>
+            <p class="txt"><span class="who">Celia</span> · Pregunta por la medicación de su padre <span class="arrow">→</span> eso lo comunica el personal: pasada a enfermería con aviso</p>
+            <span class="chip chip--warn">Escalado al equipo</span>
+          </div>
+          <div class="feed-item">
+            <span class="k-time">09:55</span>
+            <span class="avatar"><img src="assets/mascotas/martin-360.webp" alt=""></span>
+            <p class="txt"><span class="who">Martín</span> · Solicitud de plaza desde la web <span class="arrow">→</span> respondida con dossier y visita propuesta el jueves 23</p>
+            <span class="chip chip--ok">Visita propuesta</span>
+          </div>
+          <div class="feed-item">
+            <span class="k-time">09:30</span>
+            <span class="avatar"><img src="assets/mascotas/unai-360.webp" alt=""></span>
+            <p class="txt"><span class="who">Unai</span> · Aviso de mantenimiento en la sala 2 <span class="arrow">→</span> asignado, vence hoy</p>
+            <span class="chip chip--info">En curso</span>
+          </div>
+          <div class="feed-item">
+            <span class="k-time">09:05</span>
+            <span class="avatar"><img src="assets/mascotas/alba-360.webp" alt=""></span>
+            <p class="txt"><span class="who">Alba</span> · Encuesta mensual enviada a 48 familias <span class="arrow">→</span> 19 respuestas ya</p>
+            <span class="chip chip--ok">Encuesta en marcha</span>
+          </div>
+          <div class="feed-item">
+            <span class="k-time">08:56</span>
+            <span class="avatar"><img src="assets/mascotas/celia-360.webp" alt=""></span>
+            <p class="txt"><span class="who">Celia</span> · Recordatorio de la videollamada semanal enviado a la familia Ortega <span class="arrow">→</span> confirmada para el miércoles a las 18:00</p>
+            <span class="chip chip--ok">Confirmada</span>
+          </div>
+          <div class="feed-item">
+            <span class="k-time">08:49</span>
+            <span class="avatar"><img src="assets/mascotas/alba-360.webp" alt=""></span>
+            <p class="txt"><span class="who">Alba</span> · Reseña nueva en Google <span class="arrow">→</span> respuesta de agradecimiento preparada, tu equipo la aprueba antes de publicar</p>
+            <span class="chip chip--info">Espera aprobación</span>
+          </div>
+          <div class="feed-item">
+            <span class="k-time">08:41</span>
+            <span class="avatar"><img src="assets/mascotas/martin-360.webp" alt=""></span>
+            <p class="txt"><span class="who">Martín</span> · Familia preguntó por las tarifas de la plaza <span class="arrow">→</span> pasada a dirección con resumen, eso lo confirma tu equipo</p>
+            <span class="chip chip--warn">Escalado al equipo</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Columna derecha: ingresos + consumo, familias al día y pendiente destacado -->
+      <div>
+        <section class="card card--lg euro-card" aria-label="Ingresos recuperados">
+          <span class="k-label">Ingresos recuperados este mes</span>
+          <b class="mt-8">3.180 €</b>
+          <p class="muted mt-8" style="font-size:13.5px">Estimación: 2 estancias que empezaron gracias a tus agentes × el valor de primer mes que configuraste.</p>
+          <p class="how"><a href="#">Cómo se calcula</a> · <a href="#">Cambiar el valor configurado</a></p>
+          <div class="consumo-mini">
+            <div class="spread">
+              <span class="k-label">Consumo del mes</span>
+              <span class="k-time">Día 21 de 31</span>
+            </div>
+            <div class="mt-8">
+              <div class="bar" role="progressbar" aria-valuenow="58" aria-valuemin="0" aria-valuemax="100" aria-label="Minutos de voz"><i style="width:58%"></i></div>
+              <div class="bar-meta"><span>Minutos de voz</span><span><strong>348</strong> de 600</span></div>
+            </div>
+            <div class="mt-8">
+              <div class="bar" role="progressbar" aria-valuenow="37" aria-valuemin="0" aria-valuemax="100" aria-label="Conversaciones de WhatsApp"><i style="width:37%"></i></div>
+              <div class="bar-meta"><span>Conversaciones de WhatsApp</span><span><strong>221</strong> de 600</span></div>
+            </div>
+            <p class="muted mt-8" style="font-size:12.5px">Tope de gasto activado: tus agentes avisarán antes de superarlo. <a href="07-consumo.html">Ver detalle</a></p>
+          </div>
+        </section>
+
+        <section class="card card--lg fam-card mt-16" aria-label="Familias al día">
+          <span class="k-label">Familias al día</span>
+          <b class="big mt-8">132</b>
+          <p class="fam-sub">residentes viven hoy en Los Almendros</p>
+          <div class="fam-list">
+            <div class="fam-row">
+              <span>Con contacto autorizado verificado</span>
+              <strong>118</strong>
+            </div>
+            <a class="fam-row" href="19-autorizados-residencias.html">
+              <span>Autorizaciones que caducan este mes</span>
+              <span class="chip chip--warn">3 por renovar</span>
+            </a>
+          </div>
+          <p class="how"><a href="19-autorizados-residencias.html">Ver todas las familias autorizadas</a></p>
+        </section>
+
+        <section class="mt-16" aria-label="Pendientes destacados">
+          <div class="queue-item queue-item--warn" style="margin-bottom:0">
+            <div class="q-head">
+              <span class="chip chip--warn">Atención</span>
+              <span class="k-time">Hace 35 min</span>
+              <span class="sla">En plazo</span>
+            </div>
+            <p class="q-body"><strong>Celia</strong> pasó a enfermería una pregunta sobre la medicación de un residente. La familia espera que el personal la llame esta mañana.</p>
+            <div class="q-actions">
+              <a class="btn btn--primary btn--sm" href="02-cola-revision.html">Ir a la cola de revisión</a>
+              <button class="btn btn--ghost btn--sm">Llamar yo ahora</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Banda de Olmo -->
+    <section class="olmo-band mt-24" aria-label="Informe semanal">
+      <img class="mascot" src="assets/mascotas/olmo-720.webp" alt="Olmo, agente coordinador">
+      <div class="body">
+        <h3>Olmo prepara tu informe semanal</h3>
+        <p>Cada viernes a las 09:00, en tu WhatsApp. Sin entrar aquí: te lo cuenta él.</p>
+      </div>
+      <a class="btn" href="09-informe-olmo.html">Ver el último informe</a>
+    </section>
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="18-inicio-residencias.html" class="active">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

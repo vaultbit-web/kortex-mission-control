@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Ajustes</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Ajustes de la clínica */
+  .main{padding-bottom:130px}
+
+  /* ---- Grid de tarjetas de navegación del hub ---- */
+  .hub-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:4px}
+  .hub-card{
+    position:relative; display:flex; gap:14px; align-items:flex-start;
+    background:var(--paper); border:1px solid var(--line); border-radius:var(--r-md);
+    box-shadow:var(--shadow); padding:18px 18px 16px; text-decoration:none; color:var(--ink);
+    transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+  }
+  .hub-card:hover{box-shadow:var(--shadow-lift); transform:translateY(-2px); border-color:rgba(15,61,53,.28)}
+  .hub-card:hover .hub-arrow{color:var(--teal); transform:translateX(3px)}
+  .hub-ico{
+    flex:0 0 auto; width:44px; height:44px; border-radius:var(--r-sm);
+    background:var(--info-bg); color:var(--teal); display:grid; place-items:center;
+  }
+  .hub-card h3{font-family:var(--serif); font-weight:400; font-size:19px; line-height:1.2}
+  .hub-card p{font-size:15px; color:var(--ink-dim); margin-top:5px; line-height:1.45}
+  .hub-arrow{
+    margin-left:auto; align-self:center; color:var(--ink-dim); flex:0 0 auto;
+    transition:color .18s ease, transform .18s ease;
+  }
+  .hub-card--here{border-color:rgba(15,61,53,.35); background:linear-gradient(180deg,var(--paper),var(--info-bg))}
+  .hub-here{
+    position:absolute; top:12px; right:14px; display:inline-flex; align-items:center; gap:6px;
+    background:var(--teal); color:var(--white); border-radius:999px;
+    padding:3px 11px; font-size:11.5px; font-weight:600;
+  }
+  /* Pila de avatares funcional (los agentes contratados) */
+  .stack{display:flex; margin-top:9px}
+  .stack .avatar{width:28px; height:28px; border:2px solid var(--paper); margin-left:-9px}
+  .stack .avatar:first-child{margin-left:0}
+  .stack .more{
+    width:28px; height:28px; border-radius:50%; margin-left:-9px; z-index:1;
+    background:var(--neutral-bg); border:2px solid var(--paper);
+    display:grid; place-items:center; font-family:var(--mono); font-size:9.5px; color:var(--ink-dim);
+  }
+
+  /* ---- Banda con mascota grande anclada (quién usa estos datos) ---- */
+  .quien-band{
+    position:relative; overflow:hidden; margin-bottom:16px;
+    background:linear-gradient(180deg,var(--paper),var(--info-bg));
+    border:1px solid var(--line); border-radius:var(--r-lg);
+    box-shadow:var(--shadow); padding:24px 26px; min-height:168px;
+    display:flex; flex-direction:column; justify-content:center; gap:4px;
+  }
+  .quien-band .mascot{
+    position:absolute; right:-26px; bottom:-44px; width:200px; pointer-events:none;
+    filter:drop-shadow(0 12px 24px rgba(10,31,46,.14));
+  }
+  .quien-band h3{font-family:var(--serif); font-weight:400; font-size:24px; line-height:1.2; max-width:60%}
+  .quien-band p{font-size:16px; color:var(--ink-dim); max-width:60%; margin-top:4px}
+
+  /* ---- Cifra destacada del calendario ---- */
+  .fest-count{display:flex; align-items:baseline; gap:9px; margin-top:6px}
+  .fest-count b{font-family:var(--serif); font-style:italic; font-weight:400; font-size:34px; color:var(--teal); line-height:1}
+  .fest-count span{font-size:15px; color:var(--ink-dim)}
+
+  /* ---- Cabeceras de sección ---- */
+  .section-head{margin:34px 0 14px}
+  .section-head h2{margin-top:2px}
+
+  /* ---- Formulario de datos ---- */
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:0 20px}
+  .form-grid .field--full{grid-column:1 / -1}
+  .sep{border:none; border-top:1px solid var(--line); margin:10px 0 22px}
+
+  /* ---- Calendario laboral ---- */
+  .fest-table td:first-child{white-space:nowrap}
+  .fest-quitar{min-height:44px}
+
+  /* ---- Sedes ---- */
+  .sede-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .sede-card{display:flex; flex-direction:column; gap:10px}
+  .sede-card .sede-name{font-family:var(--serif); font-size:21px; font-weight:400}
+  .sede-card .sede-line{display:flex; gap:10px; align-items:flex-start; font-size:16px; color:var(--ink-dim); line-height:1.45}
+  .sede-card .sede-line svg{flex:0 0 auto; margin-top:2px; color:var(--teal)}
+  .sede-add{
+    border:1px dashed rgba(10,31,46,.22); border-radius:var(--r-md); background:transparent;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    padding:26px 20px; text-align:center; color:var(--ink-dim);
+  }
+  .sede-add b{font-size:16px; font-weight:600; color:var(--ink)}
+  .sede-add span{font-size:14.5px; max-width:34ch; line-height:1.45}
+  .sede-add .plus{
+    width:40px; height:40px; border-radius:50%; border:1px dashed rgba(10,31,46,.25);
+    display:grid; place-items:center; margin-bottom:2px;
+  }
+
+  /* ---- Barra inferior fija de guardado (mismo patrón que la pantalla 10) ---- */
+  .savebar{
+    position:fixed; left:264px; right:0; bottom:0; z-index:45;
+    background:var(--paper); border-top:1px solid var(--line);
+    box-shadow:0 -10px 30px rgba(10,31,46,.07);
+    padding:14px 38px;
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .savebar .save-note{
+    display:inline-flex; align-items:center; gap:9px;
+    font-size:15px; color:var(--ink-dim); margin-right:auto;
+  }
+  .savebar .save-note svg{flex:0 0 auto; color:var(--teal)}
+
+  @media (max-width:1180px){
+    .hub-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:980px){
+    .main{padding-bottom:210px}
+    .hub-grid{grid-template-columns:1fr}
+    .form-grid{grid-template-columns:1fr}
+    .sede-grid{grid-template-columns:1fr}
+    .savebar{left:0; bottom:calc(62px + env(safe-area-inset-bottom)); padding:12px 16px; gap:10px}
+    .savebar .save-note{width:100%; margin-right:0}
+    .quien-band{min-height:0; padding:20px 20px 128px}
+    .quien-band h3,.quien-band p{max-width:100%}
+    .quien-band .mascot{width:150px; right:-18px; bottom:-34px}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Martes, 21 de julio · 10:47</p>
+        <h1>Ajustes</h1>
+        <p class="h-sub">Tu clínica, tu equipo y cómo trabajan.</p>
+      </div>
+    </header>
+
+    <!-- ===== Tarjetas de navegación del hub ===== -->
+    <nav class="hub-grid" aria-label="Secciones de ajustes">
+
+      <a class="hub-card hub-card--here" href="#datos-clinica" aria-current="true">
+        <span class="hub-here">Estás aquí</span>
+        <span class="hub-ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/><path d="M4 21h16"/></svg>
+        </span>
+        <div>
+          <h3>Datos de la clínica</h3>
+          <p>Nombre, dirección, teléfono y calendario laboral.</p>
+        </div>
+      </a>
+
+      <a class="hub-card" href="12-usuarios-roles.html">
+        <span class="hub-ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        </span>
+        <div>
+          <h3>Usuarios y permisos</h3>
+          <p>Quién entra aquí y qué puede hacer cada persona.</p>
+        </div>
+        <span class="hub-arrow" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+
+      <a class="hub-card" href="10-configuracion-agente.html">
+        <span class="hub-ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V5M8.5 5h7"/><rect x="5" y="8" width="14" height="10" rx="4"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor" stroke="none"/></svg>
+        </span>
+        <div>
+          <h3>Tus agentes</h3>
+          <p>Horarios, tarifas aprobadas, respuestas y escalados.</p>
+          <span class="stack" role="img" aria-label="Agentes contratados: Hugo, Nora, Leo y Olmo">
+            <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt=""></span>
+            <span class="avatar"><img src="assets/mascotas/nora-360.webp" alt=""></span>
+            <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>
+            <span class="more" aria-hidden="true">+1</span>
+          </span>
+        </div>
+        <span class="hub-arrow" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+
+      <a class="hub-card" href="13-notificaciones.html">
+        <span class="hub-ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6"/><path d="M10.5 20a2 2 0 0 0 3 0"/></svg>
+        </span>
+        <div>
+          <h3>Avisos y notificaciones</h3>
+          <p>Qué te avisa, a quién y por qué canal.</p>
+        </div>
+        <span class="hub-arrow" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+
+      <a class="hub-card" href="07-consumo.html">
+        <span class="hub-ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        </span>
+        <div>
+          <h3>Consumo y plan</h3>
+          <p>Minutos, mensajes, topes de gasto y facturas.</p>
+        </div>
+        <span class="hub-arrow" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+
+      <a class="hub-card" href="08-cumplimiento.html">
+        <span class="hub-ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        </span>
+        <div>
+          <h3>Cumplimiento</h3>
+          <p>Garantías activas, registro de auditoría y consentimientos.</p>
+        </div>
+        <span class="hub-arrow" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+    </nav>
+
+    <!-- ===== Datos de la clínica ===== -->
+    <section id="datos-clinica" aria-labelledby="titulo-datos">
+      <header class="section-head">
+        <p class="k-label">Ficha de tu clínica</p>
+        <h2 id="titulo-datos">Datos de la clínica</h2>
+        <p class="h-sub">Tus agentes usan estos datos al presentarse, dar la dirección o explicar cómo llegar.</p>
+      </header>
+
+      <div class="quien-band">
+        <img class="mascot" src="assets/mascotas/hugo-720.webp" alt="Hugo, tu agente de recepción">
+        <span class="k-label" style="display:block; margin-bottom:6px">Quién usa esta ficha</span>
+        <h3>Hugo la lee en voz alta cada vez que suena el teléfono</h3>
+        <p>Si alguien pregunta dónde estáis, a qué hora abrís o cómo llegar, Hugo responde con lo que ves aquí abajo. Cambia un dato y lo dirá bien en la siguiente llamada.</p>
+      </div>
+
+      <form class="card card--lg" aria-describedby="nota-guardado">
+        <div class="form-grid">
+          <div class="field">
+            <label for="f-nombre">Nombre comercial</label>
+            <input class="input" id="f-nombre" name="nombre" type="text" value="Clínica Dental Aurora">
+            <span class="hint">Es el nombre con el que tus agentes presentan la clínica.</span>
+          </div>
+          <div class="field">
+            <label for="f-razon">Razón social</label>
+            <input class="input" id="f-razon" name="razon" type="text" value="Clínica Dental Aurora S.L.P.">
+          </div>
+          <div class="field">
+            <label for="f-cif">CIF</label>
+            <input class="input" id="f-cif" name="cif" type="text" value="B-8······" aria-describedby="hint-cif">
+            <span class="hint" id="hint-cif">Se muestra en parte por seguridad. Solo se usa en tus facturas.</span>
+          </div>
+          <div class="field">
+            <label for="f-telefono">Teléfono principal</label>
+            <input class="input" id="f-telefono" name="telefono" type="tel" value="912 345 678" aria-describedby="hint-tel">
+            <span class="hint" id="hint-tel">Desde este número desvías las llamadas a tus agentes. <a href="06b-integraciones.html">Ver la conexión</a></span>
+          </div>
+          <div class="field field--full">
+            <label for="f-direccion">Dirección</label>
+            <input class="input" id="f-direccion" name="direccion" type="text" value="Calle Doctor Esquerdo 84, bajo, 28030 Madrid">
+          </div>
+          <div class="field">
+            <label for="f-web">Página web</label>
+            <input class="input" id="f-web" name="web" type="url" value="www.clinicadentalaurora.es">
+          </div>
+          <div class="field">
+            <label for="f-correo">Correo de contacto</label>
+            <input class="input" id="f-correo" name="correo" type="email" value="hola@clinicadentalaurora.es">
+          </div>
+        </div>
+
+        <hr class="sep" aria-hidden="true">
+
+        <!-- Calendario laboral -->
+        <div class="spread" style="margin-bottom:12px">
+          <div>
+            <p class="k-label">Calendario laboral</p>
+            <h3 style="font-family:var(--serif); font-weight:400; font-size:21px; margin-top:2px">Próximos cierres</h3>
+            <p class="fest-count"><b>5</b> <span>cierres previstos de aquí a fin de año</span></p>
+          </div>
+          <button type="button" class="btn btn--secondary btn--sm" style="min-height:44px">+ Añadir festivo</button>
+        </div>
+
+        <table class="table fest-table">
+          <caption class="k-label" style="text-align:left; padding-bottom:8px">Días en que la clínica no da citas</caption>
+          <thead>
+            <tr>
+              <th scope="col">Fecha</th>
+              <th scope="col">Festivo</th>
+              <th scope="col">Ámbito</th>
+              <th scope="col"><span style="position:absolute; clip:rect(0 0 0 0)">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="k-time">Sáb 15 ago</span></td>
+              <td>Asunción de la Virgen</td>
+              <td><span class="chip chip--neutral">Nacional</span></td>
+              <td style="text-align:right"><button type="button" class="btn btn--ghost btn--sm fest-quitar" aria-label="Quitar el festivo del 15 de agosto">Quitar</button></td>
+            </tr>
+            <tr>
+              <td><span class="k-time">Lun 12 oct</span></td>
+              <td>Fiesta Nacional de España</td>
+              <td><span class="chip chip--neutral">Nacional</span></td>
+              <td style="text-align:right"><button type="button" class="btn btn--ghost btn--sm fest-quitar" aria-label="Quitar el festivo del 12 de octubre">Quitar</button></td>
+            </tr>
+            <tr>
+              <td><span class="k-time">Lun 9 nov</span></td>
+              <td>Nuestra Señora de la Almudena</td>
+              <td><span class="chip chip--neutral">Madrid</span></td>
+              <td style="text-align:right"><button type="button" class="btn btn--ghost btn--sm fest-quitar" aria-label="Quitar el festivo del 9 de noviembre">Quitar</button></td>
+            </tr>
+            <tr>
+              <td><span class="k-time">Lun 7 dic</span></td>
+              <td>Traslado del Día de la Constitución</td>
+              <td><span class="chip chip--neutral">Nacional</span></td>
+              <td style="text-align:right"><button type="button" class="btn btn--ghost btn--sm fest-quitar" aria-label="Quitar el festivo del 7 de diciembre">Quitar</button></td>
+            </tr>
+            <tr>
+              <td><span class="k-time">10 a 21 ago</span></td>
+              <td>Cierre por vacaciones del equipo</td>
+              <td><span class="chip chip--info">Día propio</span></td>
+              <td style="text-align:right"><button type="button" class="btn btn--ghost btn--sm fest-quitar" aria-label="Quitar el cierre por vacaciones de agosto">Quitar</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="banner banner--info mt-16" role="note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto; margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r=".5" fill="currentColor"/></svg>
+          <span>Los días festivos tus agentes informan del horario especial y no ofrecen citas.</span>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== Sedes ===== -->
+    <section aria-labelledby="titulo-sedes">
+      <header class="section-head">
+        <p class="k-label">Ubicaciones</p>
+        <h2 id="titulo-sedes">Sedes</h2>
+        <p class="h-sub">Tu clínica trabaja con una sola sede. Todo lo que configuras aquí se aplica a ella.</p>
+      </header>
+
+      <div class="sede-grid">
+        <article class="card sede-card" aria-label="Sede principal">
+          <div class="spread">
+            <span class="k-label">Sede principal</span>
+            <span class="chip chip--ok">Activa</span>
+          </div>
+          <h3 class="sede-name">Doctor Esquerdo</h3>
+          <p class="sede-line">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+            Calle Doctor Esquerdo 84, bajo, 28030 Madrid
+          </p>
+          <p class="sede-line">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2.2 2A17 17 0 0 1 3 6.2 2 2 0 0 1 5 4Z"/></svg>
+            912 345 678 · desvío activo a tus agentes
+          </p>
+          <p class="sede-line">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>
+            Lunes a viernes, 9:30 a 20:30
+          </p>
+        </article>
+
+        <div class="sede-add" role="note" aria-label="Añadir sede, disponible en planes con varias sedes">
+          <span class="plus" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </span>
+          <b>+ Añadir sede</b>
+          <span>Disponible en planes con varias sedes. Si abres una segunda consulta, escríbenos y la dejamos lista.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== Barra inferior fija de guardado ===== -->
+<div class="savebar" role="region" aria-label="Guardar cambios de los datos de la clínica">
+  <span class="save-note" id="nota-guardado">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4.5l3 2"/></svg>
+    Los cambios se aplican a las conversaciones nuevas.
+  </span>
+  <button type="button" class="btn btn--ghost">Descartar</button>
+  <button type="button" class="btn btn--primary">Guardar cambios</button>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

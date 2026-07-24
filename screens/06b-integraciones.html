@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Conexiones</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* ===== Estilos propios de la pantalla Conexiones ===== */
+
+  /* Píldora de vertical activo (cabecera) */
+  .vertical-pill{
+    display:inline-flex; align-items:center; gap:10px; min-height:44px;
+    background:var(--white); border:1px solid var(--line); border-radius:999px;
+    padding:9px 18px; font-size:14px; font-weight:600; color:var(--teal);
+    box-shadow:var(--shadow);
+  }
+  .vertical-pill svg{flex:0 0 auto}
+
+  /* Fila de contadores en mono */
+  .count-strip{display:flex; flex-wrap:wrap; gap:9px; margin-bottom:6px}
+  .count-pill{
+    display:inline-flex; align-items:center; gap:9px;
+    font-family:var(--mono); font-size:12px; letter-spacing:.05em; font-weight:600;
+    border-radius:999px; padding:7px 14px; border:1px solid transparent;
+  }
+  .count-pill::before{content:""; width:8px; height:8px; border-radius:50%; background:currentColor; flex:0 0 auto}
+  .count-pill--ok{background:var(--ok-bg); color:var(--ok-ink)}
+  .count-pill--warn{background:var(--warn-bg); color:var(--warn-ink)}
+  .count-pill--lock{background:var(--info-bg); color:var(--info-ink)}
+  .count-pill--off{background:var(--neutral-bg); color:var(--ink-dim)}
+
+  /* Cabecera de sección */
+  .sec{margin-top:38px}
+  .sec-head{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:14px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid var(--line);
+  }
+  .sec-head h2{font-size:25px}
+  .sec-head .sec-lead{font-size:16px; color:var(--ink-dim); margin-top:5px; max-width:64ch}
+  .sec-head .k-label{display:block; margin-bottom:4px}
+
+  /* Rejilla de tarjetas de conexión */
+  .int-grid{
+    display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:18px; margin-top:20px; align-items:stretch;
+  }
+  .int-grid > *{min-width:0}
+  @media (max-width:980px){ .int-grid{grid-template-columns:minmax(0,1fr)} }
+
+  .int-card{padding:22px}
+  .int-body{display:flex; flex-direction:column; gap:12px; flex:1; min-width:0}
+  .int-top{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .int-id{min-width:0}
+  .int-top > .chip{margin-left:auto}
+  .int-chips{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto}
+  .int-ico{
+    width:44px; height:44px; border-radius:var(--r-sm); flex:0 0 auto;
+    background:var(--white); border:1px solid var(--line); color:var(--teal);
+    display:grid; place-items:center;
+  }
+  .int-name{font-family:var(--serif); font-weight:400; font-size:22px; line-height:1.15}
+  .int-desc{font-size:16px; line-height:1.5}
+  .int-desc .num{font-family:var(--mono); font-size:14.5px; letter-spacing:.03em; white-space:nowrap}
+
+  .int-facts{list-style:none; display:flex; flex-direction:column; gap:7px}
+  .int-facts li{display:flex; align-items:flex-start; gap:9px; font-size:14.5px; color:var(--ink-dim)}
+  .int-facts svg{flex:0 0 auto; margin-top:3px; color:var(--ok-ink)}
+
+  .int-actions{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    margin-top:auto; padding-top:14px; border-top:1px dashed var(--line);
+  }
+  .int-link{
+    display:inline-flex; align-items:center; gap:6px; min-height:44px;
+    font-size:14px; font-weight:600; color:var(--teal); text-decoration:none;
+  }
+  .int-link:hover{text-decoration:underline}
+
+  /* Tarjeta ancha (la cola de revisión, siempre disponible) */
+  .int-card--wide{grid-column:1 / -1; background:linear-gradient(180deg, var(--info-bg), var(--paper) 62%)}
+  .int-card--wide .int-desc{max-width:78ch}
+
+  /* Tarjetas bajo proyecto (atenuadas, con candado) */
+  .int-card--locked{border-style:dashed; background:linear-gradient(180deg, var(--paper), var(--bone))}
+  .int-card--locked .int-ico{color:var(--ink-dim); background:rgba(255,255,255,.62)}
+  .int-card--locked .int-name{color:var(--ink-dim)}
+  .int-lock{
+    width:34px; height:34px; border-radius:50%; flex:0 0 auto; margin-left:auto;
+    background:var(--white); border:1px solid var(--line); color:var(--ink-dim);
+    display:grid; place-items:center;
+  }
+  .int-lock + .int-chips{margin-left:0}
+
+  .banner--mini{padding:11px 13px; font-size:14px; border-radius:var(--r-sm); align-items:flex-start}
+  .banner--mini svg{flex:0 0 auto; margin-top:2px}
+
+  /* ===== Otros tipos de centro (bloques por vertical) ===== */
+  .vert-list{display:flex; flex-direction:column; gap:16px; margin-top:20px}
+  .vert-card{
+    position:relative; overflow:hidden;
+    display:grid; grid-template-columns:170px minmax(0,1fr); gap:22px; align-items:center;
+    padding:24px 26px;
+  }
+  .vert-figure{align-self:stretch; display:flex; align-items:flex-end; justify-content:flex-start; min-width:0}
+  .vert-figure img{
+    width:158px; max-width:none; margin-bottom:-44px; margin-left:-10px;
+    filter:drop-shadow(0 12px 24px rgba(10,31,46,.16)); pointer-events:none;
+  }
+  .vert-body{min-width:0}
+  .vert-body h3{font-family:var(--serif); font-weight:400; font-size:23px; line-height:1.15; margin-top:4px}
+  .vert-text{font-size:16px; line-height:1.5; margin-top:10px; color:var(--ink)}
+  .tags{list-style:none; display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+  .tags li{
+    display:inline-flex; align-items:center; gap:7px; min-width:0; max-width:100%;
+    background:var(--white); border:1px solid var(--line); border-radius:999px;
+    padding:6px 13px; font-size:14px; font-weight:500; color:var(--ink);
+  }
+  .tags li::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--info-dot); flex:0 0 auto}
+  @media (max-width:980px){
+    .vert-card{grid-template-columns:minmax(0,1fr); gap:10px; padding:20px 18px}
+    .vert-figure{align-self:auto}
+    .vert-figure img{width:128px; margin-bottom:0; margin-left:-6px}
+  }
+
+  /* ===== Lo que no hacemos ===== */
+  .nope-grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; margin-top:16px}
+  .nope-grid > *{min-width:0}
+  @media (max-width:980px){ .nope-grid{grid-template-columns:minmax(0,1fr)} }
+  .nope-item{
+    display:grid; grid-template-columns:40px minmax(0,1fr); gap:13px; align-items:start;
+    background:var(--white); border:1px solid var(--line); border-left:4px solid var(--info-dot);
+    border-radius:var(--r-sm); padding:16px 18px;
+  }
+  .nope-item--live{border-left-color:var(--ok-dot)}
+  .nope-ico{
+    width:40px; height:40px; border-radius:var(--r-sm); background:var(--info-bg);
+    color:var(--info-ink); display:grid; place-items:center;
+  }
+  .nope-item--live .nope-ico{background:var(--ok-bg); color:var(--ok-ink)}
+  .nope-item h3{font-size:16px; font-family:var(--sans); font-weight:700; line-height:1.35}
+  .nope-item p{font-size:16px; line-height:1.5; color:var(--ink-dim); margin-top:4px}
+
+  /* Banda final de Olmo: texto más legible y mascota entera (sin recortar la cabeza) */
+  .olmo-band{min-height:172px; padding:26px}
+  .olmo-band .mascot{width:154px; bottom:-38px}
+  .olmo-band .body{margin-left:140px}
+  .olmo-band p{max-width:72ch; font-size:15px; opacity:.92}
+  @media (max-width:980px){
+    .olmo-band{min-height:0; padding:18px}
+    .olmo-band .mascot{width:120px; left:-16px; bottom:-30px}
+    .olmo-band .body{margin-left:96px}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Conexiones · revisado hace 2 min</p>
+        <h1>Conexiones</h1>
+        <p class="h-sub">Todo lo que tus agentes pueden usar para trabajar. Sin tecnicismos.</p>
+      </div>
+      <p class="vertical-pill">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.6 3.4c1.4 0 2 .8 4.4.8s3-.8 4.4-.8c2 0 3.1 1.6 3.1 3.8 0 3-1.2 4.2-1.8 7.3-.5 2.6-.8 5.5-2.4 5.5-1.5 0-1.6-4.7-3.3-4.7s-1.8 4.7-3.3 4.7c-1.6 0-1.9-2.9-2.4-5.5C5.7 11.4 4.5 10.2 4.5 7.2c0-2.2 1.1-3.8 3.1-3.8Z"/></svg>
+        Catálogo de clínica dental
+      </p>
+    </header>
+
+    <!-- ===== Contadores del catálogo ===== -->
+    <section class="count-strip" aria-label="Resumen del catálogo de conexiones">
+      <span class="count-pill count-pill--ok">5 activas</span>
+      <span class="count-pill count-pill--warn">6 listas para conectar</span>
+      <span class="count-pill count-pill--lock">4 bajo proyecto</span>
+      <span class="count-pill count-pill--off">3 no aplican</span>
+    </section>
+
+    <!-- ===== 1. Activas ahora ===== -->
+    <section class="sec" aria-label="Conexiones activas ahora">
+      <div class="sec-head">
+        <div>
+          <span class="k-label k-label--teal">Funcionando hoy</span>
+          <h2>Activas ahora</h2>
+          <p class="sec-lead">Ya están trabajando en tu clínica. No tienes que hacer nada con ellas.</p>
+        </div>
+        <span class="chip chip--ok">5 conexiones en verde</span>
+      </div>
+
+      <div class="int-grid">
+
+        <!-- WhatsApp -->
+        <article class="card int-card" aria-label="Conexión de WhatsApp">
+          <span class="semaforo semaforo--ok" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">WhatsApp</h3>
+                <span class="k-label">Canal de mensajes</span>
+              </div>
+              <span class="chip chip--ok">Conectado</span>
+            </div>
+            <p class="int-desc">Tu número de siempre, el <span class="num">611 234 567</span>, sigue en tu móvil como siempre. Hugo y Leo atienden por detrás, en ese mismo número.</p>
+            <ul class="int-facts">
+              <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg> Historial sincronizado</li>
+              <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg> Nombre de la clínica verificado</li>
+            </ul>
+            <div class="int-actions">
+              <a class="int-link" href="#">
+                Ver cómo está montado
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+              <a class="int-link" href="#">
+                Guía paso a paso
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Teléfono -->
+        <article class="card int-card" aria-label="Conexión de teléfono">
+          <span class="semaforo semaforo--ok" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h3l1.5 4-2 1.5a12 12 0 0 0 6.5 6.5L17 13l4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.2 2 2 0 0 1 6.5 3Z"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Teléfono</h3>
+                <span class="k-label">Llamadas de la clínica</span>
+              </div>
+              <span class="chip chip--ok">Desvío activo</span>
+            </div>
+            <p class="int-desc">Desvío activo desde el <span class="num">912 345 678</span>. Si tu equipo no coge la llamada, Hugo la atiende y toma nota de todo.</p>
+            <div class="banner banner--warn banner--mini" role="note">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.2v.01"/></svg>
+              <span>Confirma con tu operadora que tu tarifa incluye el desvío; con tarifa plana suele estar incluido.</span>
+            </div>
+            <div class="int-actions">
+              <a class="int-link" href="#">
+                Ver cómo está montado
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+              <a class="int-link" href="#">
+                Guía paso a paso
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Calendario -->
+        <article class="card int-card" aria-label="Conexión del calendario">
+          <span class="semaforo semaforo--ok" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Calendario</h3>
+                <span class="k-label">Agenda de citas</span>
+              </div>
+              <span class="chip chip--ok">Conectado</span>
+            </div>
+            <p class="int-desc">Google Calendar conectado como <span class="num">recepcion@clinicaaurora.es</span>. Las citas que crean tus agentes aparecen ahí al momento.</p>
+            <ul class="int-facts">
+              <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg> Última cita sincronizada hoy a las 10:42</li>
+            </ul>
+            <div class="int-actions">
+              <a class="int-link" href="#">
+                Ver cómo está montado
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+              <a class="int-link" href="#">
+                Guía paso a paso
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Correo -->
+        <article class="card int-card" aria-label="Conexión del correo">
+          <span class="semaforo semaforo--ok" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Correo</h3>
+                <span class="k-label">Buzón de citas</span>
+              </div>
+              <span class="chip chip--ok">Conectado</span>
+            </div>
+            <p class="int-desc">El buzón <span class="num">citas@clinicaaurora.es</span> llega a tu agente. Hugo responde las consultas y avisa a tu equipo cuando hace falta.</p>
+            <ul class="int-facts">
+              <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg> 6 correos atendidos esta semana</li>
+            </ul>
+            <div class="int-actions">
+              <a class="int-link" href="#">
+                Ver cómo está montado
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+              <a class="int-link" href="#">
+                Guía paso a paso
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Cola de revisión (especial, ancha) -->
+        <article class="card int-card int-card--wide" aria-label="Cola de revisión, siempre disponible">
+          <span class="semaforo semaforo--ok" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Cola de revisión</h3>
+                <span class="k-label">El plan que nunca falla</span>
+              </div>
+              <div class="int-chips">
+                <span class="chip chip--info">Siempre disponible</span>
+                <span class="chip chip--ok">Activa</span>
+              </div>
+            </div>
+            <p class="int-desc">Funciona con cualquier programa de gestión, tenga conexión o no. Tus agentes proponen y tu equipo confirma. Es la razón por la que podemos empezar la semana que viene aunque tu software no se conecte.</p>
+            <ul class="int-facts">
+              <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg> No depende de nadie más: ni de tu proveedor de software ni de un alta externa</li>
+              <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg> Cada propuesta llega con el resumen hecho, para confirmarla en segundos</li>
+            </ul>
+            <div class="int-actions">
+              <a class="btn btn--secondary" href="02-cola-revision.html">Ver la cola de revisión</a>
+              <a class="int-link" href="#">
+                Cómo trabaja tu equipo con ella
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== 2. Listas para tu clínica dental ===== -->
+    <section class="sec" aria-label="Conexiones listas para tu clínica dental">
+      <div class="sec-head">
+        <div>
+          <span class="k-label k-label--teal">Se activan cuando tú digas</span>
+          <h2>Listas para tu clínica dental</h2>
+          <p class="sec-lead">Tienen una forma de conectarse ya documentada. Tú pides el alta y nosotros la dejamos funcionando.</p>
+        </div>
+        <span class="chip chip--warn">6 listas para conectar</span>
+      </div>
+
+      <div class="int-grid">
+
+        <!-- Doctoralia -->
+        <article class="card int-card" aria-label="Conexión con Doctoralia">
+          <span class="semaforo semaforo--warn" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Doctoralia</h3>
+                <span class="k-label">Puerta a 13 programas</span>
+              </div>
+              <span class="chip chip--warn">Alta de socio en curso</span>
+            </div>
+            <p class="int-desc">Cuando esté activa, conecta de una vez con 13 programas de gestión distintos, entre ellos Clinic Cloud, TuoTempo, Nubimed y Odontonet.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--secondary">Pedir alta</button>
+              <a class="int-link" href="#">
+                Ver los 13 programas
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Klinikare -->
+        <article class="card int-card" aria-label="Conexión con Klinikare">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2.5"/><path d="M8 21h8M12 17v4"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Klinikare</h3>
+                <span class="k-label">Programa de gestión</span>
+              </div>
+              <span class="chip chip--neutral">Sin conectar</span>
+            </div>
+            <p class="int-desc">Tiene conexión propia documentada. Lectura incluida; para que el agente escriba citas hace falta su suscripción.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--secondary">Pedir alta</button>
+              <a class="int-link" href="#">
+                Qué cambia con la suscripción
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Clinic Cloud -->
+        <article class="card int-card" aria-label="Conexión con Clinic Cloud">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5a4.2 4.2 0 0 1 .6-8.4 5.6 5.6 0 0 1 10.6 1.6 3.6 3.6 0 0 1-.7 6.8H7Z"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Clinic Cloud</h3>
+                <span class="k-label">Programa de gestión</span>
+              </div>
+              <span class="chip chip--neutral">Sin conectar</span>
+            </div>
+            <p class="int-desc">Conexión disponible a través de Doctoralia. En cuanto tengamos el alta de socio, tu clínica entra sin trabajo extra.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--secondary">Pedir alta</button>
+              <a class="int-link" href="#">
+                Guía paso a paso
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Google Business -->
+        <article class="card int-card" aria-label="Conexión con tu ficha de Google">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.3.8-4.6 4.2 1.2 6.1L12 16.8l-5.6 2.9 1.2-6.1L3 9.4l6.3-.8L12 3Z"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Google Business</h3>
+                <span class="k-label">Reseñas de pacientes</span>
+              </div>
+              <span class="chip chip--neutral">Sin conectar</span>
+            </div>
+            <p class="int-desc">Sin conectar. Conecta tu ficha y te avisamos de cada reseña nueva, para que ninguna se quede sin respuesta.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--primary">Conectar</button>
+              <a class="int-link" href="#">
+                Guía paso a paso
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Pagos -->
+        <article class="card int-card" aria-label="Conexión de pagos">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M2.5 10h19M6.5 15h4"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Pagos</h3>
+                <span class="k-label">Redsys o Stripe</span>
+              </div>
+              <span class="chip chip--neutral">Sin conectar</span>
+            </div>
+            <p class="int-desc">Para enviar enlaces de pago de presupuestos. El paciente paga desde el móvil y tu equipo lo ve al momento.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--primary">Conectar</button>
+              <a class="int-link" href="#">
+                Guía paso a paso
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Firma de consentimientos -->
+        <article class="card int-card" aria-label="Conexión de firma de consentimientos">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 20 4.2-1L18 9.2 14.8 6 5 15.8 4 20Z"/><path d="m13.6 7.2 3.2 3.2"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Firma de consentimientos</h3>
+                <span class="k-label">VIDsigner o Signaturit</span>
+              </div>
+              <span class="chip chip--neutral">Sin conectar</span>
+            </div>
+            <p class="int-desc">Para que el paciente firme desde el móvil antes de venir. Llega firmado y tu equipo deja de perseguir papeles.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--primary">Conectar</button>
+              <a class="int-link" href="#">
+                Guía paso a paso
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== 3. Bajo proyecto ===== -->
+    <section class="sec" aria-label="Conexiones bajo proyecto">
+      <div class="sec-head">
+        <div>
+          <span class="k-label k-label--teal">Con presupuesto aparte</span>
+          <h2>Bajo proyecto</h2>
+          <p class="sec-lead">Se pueden hacer, pero llevan trabajo a medida. Preferimos decírtelo antes de empezar y no después.</p>
+        </div>
+        <span class="chip chip--info">4 bajo proyecto</span>
+      </div>
+
+      <div class="int-grid">
+
+        <!-- Gesden G5 -->
+        <article class="card int-card int-card--locked" aria-label="Conexión con Gesden G5">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Gesden G5</h3>
+                <span class="k-label">El que va en tu servidor</span>
+              </div>
+              <div class="int-chips">
+                <span class="chip chip--info">El más común</span>
+                <span class="int-lock" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                </span>
+              </div>
+            </div>
+            <p class="int-desc">Es el programa más usado en las clínicas dentales españolas y no tiene conexión directa: hay que instalar un pequeño programa en tu servidor que lee tu agenda, con contrato de protección de datos. Se presupuesta aparte.</p>
+            <ul class="int-facts">
+              <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg> Mientras tanto, trabajas con la cola de revisión desde el primer día</li>
+            </ul>
+            <div class="int-actions">
+              <button type="button" class="btn btn--secondary">Pedir presupuesto</button>
+              <a class="int-link" href="#">
+                Qué se instala exactamente
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Gesden ONE -->
+        <article class="card int-card int-card--locked" aria-label="Conexión con Gesden ONE">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5a4.2 4.2 0 0 1 .6-8.4 5.6 5.6 0 0 1 10.6 1.6 3.6 3.6 0 0 1-.7 6.8H7Z"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Gesden ONE</h3>
+                <span class="k-label">El de la nube</span>
+              </div>
+              <span class="int-lock" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              </span>
+            </div>
+            <p class="int-desc">Su versión en la nube sí permite conexión. Lo comprobamos en la fase de viabilidad, antes de que firmes nada.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--secondary">Pedir presupuesto</button>
+              <a class="int-link" href="#">
+                Cómo es la fase de viabilidad
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Financiación -->
+        <article class="card int-card int-card--locked" aria-label="Conexión de financiación de tratamientos">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.5" rx="7.5" ry="3"/><path d="M4.5 6.5v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/><path d="M4.5 11.5v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Financiación de tratamientos</h3>
+                <span class="k-label">SeQura o Aplazame</span>
+              </div>
+              <span class="int-lock" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              </span>
+            </div>
+            <p class="int-desc">Para que Nora ofrezca el pago a plazos ya aprobado, sin que el paciente tenga que volver otro día a preguntar.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--secondary">Pedir presupuesto</button>
+              <a class="int-link" href="#">
+                Qué haría Nora con esto
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Radiología -->
+        <article class="card int-card int-card--locked" aria-label="Radiología e imagen dental">
+          <span class="semaforo semaforo--off" aria-hidden="true"></span>
+          <div class="int-body">
+            <div class="int-top">
+              <span class="int-ico" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M4 12h16"/></svg>
+              </span>
+              <div class="int-id">
+                <h3 class="int-name">Radiología y imagen dental</h3>
+                <span class="k-label">Tu equipo de rayos</span>
+              </div>
+              <div class="int-chips">
+                <span class="chip chip--neutral">No se toca</span>
+                <span class="int-lock" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                </span>
+              </div>
+            </div>
+            <p class="int-desc">Tu equipo de rayos sigue funcionando igual. Tus agentes no tocan la imagen. Si algún día quieres avisos automáticos alrededor de ella, se estudia como proyecto.</p>
+            <div class="int-actions">
+              <button type="button" class="btn btn--secondary">Consultarlo en la visita</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== 4. Otros tipos de centro ===== -->
+    <section class="sec" aria-label="Conexiones preparadas para otros tipos de centro">
+      <div class="sec-head">
+        <div>
+          <span class="k-label k-label--teal">El panel ya está preparado</span>
+          <h2>Otros tipos de centro</h2>
+          <p class="sec-lead">No es lo mismo una clínica dental que una residencia o un centro de imagen. Cada tipo de centro tiene su propio catálogo, y ya está montado.</p>
+        </div>
+        <span class="chip chip--info">3 verticales más</span>
+      </div>
+
+      <div class="vert-list">
+
+        <!-- Residencias -->
+        <article class="card card--lg vert-card" aria-label="Catálogo de residencias de mayores">
+          <div class="vert-figure">
+            <img src="assets/mascotas/celia-720.webp" alt="Celia, la agente de residencias de mayores">
+          </div>
+          <div class="vert-body">
+            <span class="k-label">Celia · agente de familias</span>
+            <h3>Residencias de mayores</h3>
+            <ul class="tags">
+              <li>ResiPlus</li>
+              <li>AegerusNG</li>
+              <li>GdR</li>
+              <li>Llamada de enfermería (Ibernex, Optimus)</li>
+              <li>Portal de familias existente</li>
+            </ul>
+            <p class="vert-text">En residencias entramos por el teléfono y el WhatsApp de las familias, sin tocar su programa asistencial. La conexión con ResiPlus o Aegerus se acuerda con el fabricante.</p>
+          </div>
+        </article>
+
+        <!-- Imagen médica -->
+        <article class="card card--lg vert-card" aria-label="Catálogo de imagen médica y radioterapia">
+          <div class="vert-figure">
+            <img src="assets/mascotas/vega-720.webp" alt="Vega, la agente de imagen médica">
+          </div>
+          <div class="vert-body">
+            <span class="k-label">Vega · agente de citación</span>
+            <h3>Imagen médica y radioterapia</h3>
+            <ul class="tags">
+              <li>Conexión con tu sistema de citación por los estándares del sector (HL7 y lista de trabajo DICOM)</li>
+              <li>Agenda de máquinas</li>
+              <li>Aviso de informe firmado</li>
+              <li>Portal de resultados</li>
+            </ul>
+            <p class="vert-text">Aquí la conexión es un módulo de proyecto con nombre propio: es lo que permite citar sobre los huecos reales de cada máquina.</p>
+          </div>
+        </article>
+
+        <!-- Salud, fisioterapia y estética -->
+        <article class="card card--lg vert-card" aria-label="Catálogo de clínicas de salud, fisioterapia y estética">
+          <div class="vert-figure">
+            <img src="assets/mascotas/jara-720.webp" alt="Jara, la agente de clínicas de salud y estética">
+          </div>
+          <div class="vert-body">
+            <span class="k-label">Jara · agente de pacientes</span>
+            <h3>Clínicas de salud, fisioterapia y estética</h3>
+            <ul class="tags">
+              <li>DriCloud</li>
+              <li>Clinic Cloud</li>
+              <li>Nubimed</li>
+              <li>flowww</li>
+            </ul>
+            <p class="vert-text">DriCloud es la que mejor permite citar. flowww puede requerir su plan más alto.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===== 5. Lo que no hacemos, a propósito ===== -->
+    <section class="sec" aria-label="Lo que no hacemos, a propósito">
+      <div class="sec-head">
+        <div>
+          <span class="k-label k-label--teal">Límites claros</span>
+          <h2>Lo que no hacemos, a propósito</h2>
+          <p class="sec-lead">Cada cosa que no tocamos es una cosa menos que se puede romper. Tu programa sigue mandando donde tiene que mandar.</p>
+        </div>
+        <span class="chip chip--neutral">3 no aplican · 1 convivencia</span>
+      </div>
+
+      <div class="card card--lg mt-16">
+        <div class="nope-grid">
+
+          <div class="nope-item">
+            <span class="nope-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3h13v18l-2.6-1.6L13.3 21 11 19.4 8.6 21 6 19.4 5.5 21V3Z"/><path d="M9 8h6M9 12h6"/></svg>
+            </span>
+            <div>
+              <h3>La facturación la sigue emitiendo tu programa</h3>
+              <p>Nosotros no tocamos tus facturas ni tu Verifactu. Ese terreno es tuyo y de tu asesoría, y así se queda.</p>
+            </div>
+          </div>
+
+          <div class="nope-item">
+            <span class="nope-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="8.8" cy="10" r="1.6"/><path d="m4 17 5-4.5 4 3.2 3-2.4L20 17"/></svg>
+            </span>
+            <div>
+              <h3>No tocamos la imagen médica ni las radiografías</h3>
+              <p>Ni las movemos, ni las guardamos, ni las enseñamos. Tu equipo de imagen trabaja exactamente igual que hoy.</p>
+            </div>
+          </div>
+
+          <div class="nope-item">
+            <span class="nope-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6V3Z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h4"/></svg>
+            </span>
+            <div>
+              <h3>No entregamos informes clínicos</h3>
+              <p>Avisamos de que están listos y derivamos a tu portal o a tu profesional. Quien informa al paciente sigue siendo tu equipo.</p>
+            </div>
+          </div>
+
+          <div class="nope-item nope-item--live">
+            <span class="nope-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+            </span>
+            <div>
+              <h3>Si ya tienes portal de familias, convivimos con él</h3>
+              <p>No lo sustituimos ni te pedimos que lo apagues. Nosotros atendemos por teléfono y WhatsApp, y el portal sigue siendo el portal.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Banda de Olmo ===== -->
+    <section class="olmo-band mt-24" aria-label="Tu programa no está en la lista">
+      <img class="mascot" src="assets/mascotas/olmo-720.webp" alt="Olmo, el agente coordinador">
+      <div class="body">
+        <h3>¿No ves tu programa en la lista?</h3>
+        <p>Dínoslo en la visita. Lo estudiamos y te decimos la verdad: si se puede conectar, cuánto cuesta, y si no se puede, cómo lo resolvemos con la cola de revisión.</p>
+      </div>
+      <a class="btn" href="#">Pedir la visita</a>
+    </section>
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

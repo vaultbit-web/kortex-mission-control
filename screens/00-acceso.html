@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Acceso</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla de acceso (sin sidebar ni tabbar) */
+  body{overflow-x:hidden}
+
+  .access-stage{
+    position:relative; overflow:hidden; min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:56px 20px 200px;
+  }
+  .access-stage::before{
+    content:""; position:absolute; inset:-10% 0 auto 0; height:520px; pointer-events:none;
+    background:radial-gradient(75% 75% at 50% 0%, var(--mc-glow), transparent 70%);
+  }
+  .access-stage>*{position:relative}
+
+  /* Tarjeta de acceso */
+  .access-card{
+    width:100%; max-width:420px; background:var(--paper);
+    border:1px solid var(--line); border-radius:var(--r-lg);
+    box-shadow:var(--shadow-lift); padding:34px 32px 30px;
+  }
+  .access-card .logo{font-family:var(--serif); font-size:34px; letter-spacing:.01em; text-align:center}
+  .access-card .logo em{font-style:italic; color:var(--teal)}
+  .access-card .tag{
+    font-family:var(--mono); font-size:10px; letter-spacing:.24em; text-transform:uppercase;
+    color:var(--ink-dim); text-align:center; margin-top:5px; margin-bottom:26px;
+  }
+  .access-card .btn{width:100%}
+
+  .forgot-row{display:flex; justify-content:flex-end; margin:-6px 0 18px}
+  .forgot-row a{font-size:13.5px; font-weight:500; padding:8px 2px; margin:-8px -2px}
+
+  /* Separador "o" */
+  .or-sep{
+    display:flex; align-items:center; gap:14px; margin:22px 0 16px;
+    font-family:var(--mono); font-size:12px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--ink);
+  }
+  .or-sep::before,.or-sep::after{content:""; flex:1; height:1px; background:rgba(10,31,46,.18)}
+
+  /* Nota de seguridad bajo la tarjeta */
+  .sec-note{
+    margin-top:18px; font-family:var(--mono); font-size:11.5px; letter-spacing:.06em;
+    color:var(--ink-dim); text-align:center; max-width:420px; line-height:1.8;
+    position:relative; z-index:2;
+  }
+
+  /* Olmo grande anclado al borde inferior derecho de la página */
+  .olmo-welcome{position:absolute; right:0; bottom:0; pointer-events:none; z-index:1}
+  .olmo-welcome img{
+    width:340px; margin-right:-44px; margin-bottom:-84px;
+    filter:drop-shadow(0 16px 34px rgba(10,31,46,.18));
+  }
+  .olmo-bubble{
+    position:absolute; right:56px; bottom:296px; width:238px; pointer-events:auto;
+    background:var(--paper); border:1px solid var(--line); border-radius:var(--r-md);
+    border-bottom-right-radius:6px; box-shadow:var(--shadow); padding:14px 16px;
+  }
+  .olmo-bubble .k-label{display:block; margin-bottom:5px}
+  .olmo-bubble p{font-size:14px; line-height:1.5}
+
+  /* Divisores entre variantes de la maqueta */
+  .variant-divider{
+    display:flex; align-items:center; gap:16px; width:100%; max-width:640px;
+    margin:70px auto 34px; font-family:var(--mono); font-size:10.5px;
+    letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim);
+  }
+  .variant-divider::before,.variant-divider::after{content:""; flex:1; height:1px; background:var(--line)}
+
+  .variant-wrap{display:flex; flex-direction:column; align-items:center; padding:0 20px}
+
+  .back-row{margin-top:16px; text-align:center}
+  .back-row a{font-size:13.5px; font-weight:500; color:var(--ink-dim); text-decoration:none; padding:10px 8px; display:inline-block}
+  .back-row a:hover{color:var(--teal)}
+
+  /* Casillas de código de verificación */
+  .code-boxes{display:flex; gap:9px; justify-content:center; margin:6px 0 20px}
+  .code-boxes input{
+    width:50px; height:58px; text-align:center; font-family:var(--mono); font-size:24px;
+    color:var(--ink); background:var(--white); border:1px solid var(--line);
+    border-radius:var(--r-sm);
+  }
+  .code-boxes input:focus{border-color:var(--teal); outline:none; box-shadow:0 0 0 3px rgba(15,61,53,.12)}
+
+  /* Botón con aspecto de enlace (acción real, no navegación) */
+  .link-btn{
+    background:none; border:none; padding:8px 2px; margin:-8px -2px;
+    color:var(--teal); font-size:13px; font-weight:600; text-decoration:underline;
+  }
+  .link-btn:hover{color:#0C332C}
+
+  /* Estado de error en campos */
+  .field--error .input{border-color:var(--urgent-dot); box-shadow:0 0 0 3px rgba(194,74,63,.10)}
+  .field-msg{
+    display:flex; align-items:flex-start; gap:6px;
+    font-size:12.5px; color:var(--urgent-ink); font-weight:500;
+  }
+  .field-msg svg{flex:0 0 auto; margin-top:2px}
+
+  /* Pie de página */
+  .access-foot{
+    border-top:1px solid var(--line); margin-top:70px; padding:26px 20px 34px;
+    display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center;
+  }
+  .access-foot .links{display:flex; gap:8px; align-items:center; font-size:13.5px}
+  .access-foot .links a{text-decoration:none; font-weight:500; padding:8px 6px}
+  .access-foot .links a:hover{text-decoration:underline}
+  .access-foot .dot-sep{color:var(--ink-dim)}
+  .access-foot .wa{font-size:13.5px; color:var(--ink-dim)}
+  .access-foot .wa a{font-weight:600; padding:8px 4px; display:inline-block}
+
+  @media (max-width:980px){
+    .access-stage{padding:40px 18px 150px}
+    .olmo-welcome img{width:230px; margin-right:-36px; margin-bottom:-58px}
+    .olmo-bubble{right:40px; bottom:210px; width:210px}
+  }
+  @media (max-width:640px){
+    .access-stage{padding-bottom:210px}
+    .access-card{padding:28px 22px 24px}
+    .olmo-welcome img{width:180px; margin-right:-30px; margin-bottom:-44px}
+    .olmo-bubble{right:24px; bottom:168px; width:190px}
+    .code-boxes{gap:6px}
+    .code-boxes input{width:44px; height:54px; font-size:21px}
+    .variant-divider{margin:54px auto 28px}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+
+<!-- ===== Variante principal: entrada con contraseña ===== -->
+<div class="access-stage">
+
+  <main class="access-card" aria-labelledby="titulo-acceso">
+    <div class="logo" id="titulo-acceso">Kórtex<em>.</em></div>
+    <p class="tag">Centro de Operaciones</p>
+
+    <form aria-label="Formulario de acceso">
+      <div class="field">
+        <label for="email">Correo electrónico</label>
+        <input class="input" type="email" id="email" name="email" autocomplete="email" placeholder="marta@clinicaaurora.es" required>
+      </div>
+      <div class="field">
+        <label for="pass">Contraseña</label>
+        <input class="input" type="password" id="pass" name="pass" autocomplete="current-password" placeholder="Tu contraseña" required>
+      </div>
+      <div class="forgot-row">
+        <a href="#recuperar">He olvidado mi contraseña</a>
+      </div>
+      <button type="submit" class="btn btn--primary">Entrar</button>
+    </form>
+
+    <div class="or-sep" aria-hidden="true">o</div>
+    <button type="button" class="btn btn--secondary">Recibir un enlace de acceso por correo</button>
+    <p class="hint" style="font-size:12.5px; color:var(--ink-dim); text-align:center; margin-top:10px">Sin contraseña: te llega un enlace y entras con un toque.</p>
+  </main>
+
+  <p class="sec-note">Acceso cifrado · Sesión de 8 horas · Cada acceso queda registrado en Cumplimiento</p>
+
+  <!-- Olmo da la bienvenida, anclado al borde inferior derecho -->
+  <aside class="olmo-welcome" aria-label="Mensaje de bienvenida de Olmo">
+    <div class="olmo-bubble">
+      <span class="k-label k-label--teal">Olmo · Coordinador</span>
+      <p>Buenos días. Tu equipo lleva trabajando desde las 07:00.</p>
+    </div>
+    <img src="assets/mascotas/olmo-720.webp" alt="Olmo, el agente coordinador, asomando por el borde de la pantalla">
+  </aside>
+</div>
+
+<!-- ===== Variante 2: recuperar la contraseña ===== -->
+<div class="variant-divider" role="separator" id="recuperar">Así se ve recuperar la contraseña</div>
+
+<div class="variant-wrap">
+  <section class="access-card" aria-labelledby="titulo-recuperar">
+    <div class="logo" aria-hidden="true">Kórtex<em>.</em></div>
+    <p class="tag">Centro de Operaciones</p>
+
+    <h2 id="titulo-recuperar" style="font-size:22px; margin-bottom:6px">Recupera tu contraseña</h2>
+    <p style="font-size:14px; color:var(--ink-dim); margin-bottom:20px">Dinos tu correo y te enviamos un enlace para crear una nueva.</p>
+
+    <form aria-label="Formulario de recuperación de contraseña">
+      <div class="field">
+        <label for="email-rec">Correo electrónico</label>
+        <input class="input" type="email" id="email-rec" name="email-rec" autocomplete="email" value="marta@clinicaaurora.es" required>
+      </div>
+      <button type="submit" class="btn btn--primary">Enviarme el enlace</button>
+    </form>
+
+    <div class="banner banner--ok mt-16" role="status">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto; margin-top:1px"><path d="M4 7h16v11H4z"/><path d="m4 8 8 6 8-6"/></svg>
+      <span><strong>Revisa tu correo.</strong> El enlace caduca en 15 minutos.</span>
+    </div>
+
+    <div class="back-row">
+      <a href="#titulo-acceso">Volver a la pantalla de entrada</a>
+    </div>
+  </section>
+</div>
+
+<!-- ===== Variante 3: código de verificación ===== -->
+<div class="variant-divider" role="separator">Así se ve el código de verificación</div>
+
+<div class="variant-wrap">
+  <section class="access-card" aria-labelledby="titulo-codigo">
+    <div class="logo" aria-hidden="true">Kórtex<em>.</em></div>
+    <p class="tag">Centro de Operaciones</p>
+
+    <h2 id="titulo-codigo" style="font-size:22px; margin-bottom:6px">Un paso más</h2>
+    <p style="font-size:14px; color:var(--ink-dim); margin-bottom:20px">Te hemos enviado un código a <strong style="color:var(--ink)">ma···@clinicaaurora.es</strong>. Escríbelo aquí para entrar.</p>
+
+    <form aria-label="Formulario de código de verificación">
+      <div class="code-boxes" role="group" aria-label="Código de verificación de 6 cifras">
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Cifra 1" value="4">
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Cifra 2" value="7">
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Cifra 3" value="2">
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Cifra 4">
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Cifra 5">
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Cifra 6">
+      </div>
+      <button type="submit" class="btn btn--primary">Confirmar y entrar</button>
+    </form>
+
+    <p style="font-size:13px; color:var(--ink-dim); text-align:center; margin-top:14px">¿No te ha llegado? <button type="button" class="link-btn">Reenviar el código</button> (puedes pedirlo de nuevo en 60 segundos)</p>
+
+    <div class="back-row" style="margin-top:8px">
+      <a href="#titulo-acceso">Volver a la pantalla de entrada</a>
+    </div>
+  </section>
+</div>
+
+<!-- ===== Variante 4: acceso incorrecto ===== -->
+<div class="variant-divider" role="separator">Así se ve un acceso incorrecto</div>
+
+<div class="variant-wrap">
+  <section class="access-card" aria-labelledby="titulo-error">
+    <div class="logo" aria-hidden="true">Kórtex<em>.</em></div>
+    <p class="tag">Centro de Operaciones</p>
+
+    <div class="banner banner--urgent" role="alert" style="margin-bottom:18px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto; margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16.5h.01"/></svg>
+      <span id="titulo-error"><strong>Ese correo y esa contraseña no coinciden.</strong> Revísalos e inténtalo otra vez. Te quedan 3 intentos antes de una pausa de 15 minutos.</span>
+    </div>
+
+    <form aria-label="Formulario de acceso con error">
+      <div class="field">
+        <label for="email-err">Correo electrónico</label>
+        <input class="input" type="email" id="email-err" name="email-err" autocomplete="email" value="marta@clinicaaurora.es" required>
+      </div>
+      <div class="field field--error">
+        <label for="pass-err">Contraseña</label>
+        <input class="input" type="password" id="pass-err" name="pass-err" autocomplete="current-password" value="········" aria-invalid="true" aria-describedby="pass-err-msg" required>
+        <p class="field-msg" id="pass-err-msg">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16.5h.01"/></svg>
+          La contraseña no es correcta.
+        </p>
+      </div>
+      <button type="submit" class="btn btn--primary">Probar otra vez</button>
+    </form>
+
+    <div class="or-sep" aria-hidden="true">o</div>
+    <button type="button" class="btn btn--secondary">Recibir un enlace de acceso por correo</button>
+    <p class="hint" style="font-size:12.5px; color:var(--ink-dim); text-align:center; margin-top:10px">Si no recuerdas la contraseña, esta es la vía rápida.</p>
+  </section>
+</div>
+
+<!-- ===== Pie de página ===== -->
+<footer class="access-foot">
+  <div class="links">
+    <a href="#">Aviso legal</a>
+    <span class="dot-sep" aria-hidden="true">·</span>
+    <a href="#">Privacidad</a>
+  </div>
+  <p class="wa">¿Problemas para entrar? <a href="#">Escríbenos por WhatsApp</a></p>
+</footer>
+
+</body>
+</html>

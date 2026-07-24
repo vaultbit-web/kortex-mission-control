@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Alta de tu clínica · Paso 4 de 8</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla de Onboarding (paso 4) */
+
+  /* Barra de progreso global, fija arriba */
+  .global-progress{
+    position:sticky; top:0; z-index:30; height:6px; background:var(--neutral-bg);
+  }
+  .global-progress>i{display:block; height:100%; width:38%; background:var(--teal); border-radius:0 999px 999px 0; transition:width .3s}
+
+  .wizard{
+    max-width:720px; margin:0 auto; padding:26px 18px 140px; position:relative;
+  }
+  .wizard::before{
+    content:""; position:fixed; inset:-10% 0 auto 0; height:380px; pointer-events:none; z-index:-1;
+    background:radial-gradient(80% 80% at 50% 0%, var(--mc-glow), transparent 70%);
+  }
+
+  /* Cabecera del asistente */
+  .wiz-head{display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:22px; flex-wrap:wrap}
+  .wiz-head .logo{font-family:var(--serif); font-size:24px; letter-spacing:.01em}
+  .wiz-head .logo em{font-style:italic; color:var(--teal)}
+  .wiz-head .where{text-align:right; min-width:0}
+  @media (max-width:560px){
+    .wiz-head .where{text-align:left; flex-basis:100%}
+  }
+
+  /* Stepper horizontal de 8 pasos */
+  .wsteps{
+    display:grid; grid-template-columns:repeat(8,1fr); gap:0; margin:6px 0 26px;
+    padding:16px 10px 12px; background:var(--paper); border:1px solid var(--line);
+    border-radius:var(--r-md); box-shadow:var(--shadow);
+  }
+  .wstep{display:flex; flex-direction:column; align-items:center; gap:7px; position:relative; text-align:center}
+  .wstep .dot{
+    width:30px; height:30px; border-radius:50%; border:2px solid var(--line); background:var(--paper);
+    display:grid; place-items:center; font-family:var(--mono); font-size:12px; color:var(--ink-dim); z-index:1;
+  }
+  .wstep:not(:last-child)::before{
+    content:""; position:absolute; top:15px; left:calc(50% + 17px); right:calc(-50% + 17px);
+    height:2px; background:var(--line);
+  }
+  .wstep--done:not(:last-child)::before{background:var(--teal)}
+  .wstep--done .dot{background:var(--teal); border-color:var(--teal); color:#fff}
+  .wstep--active .dot{border-color:var(--teal); color:var(--teal); font-weight:700; box-shadow:0 0 0 4px rgba(15,61,53,.12)}
+  .wstep .lbl{font-size:10.5px; font-weight:600; color:var(--ink); line-height:1.25; max-width:76px}
+  .wstep--active .lbl{color:var(--teal)}
+
+  /* Titular del paso */
+  .step-title h1{font-size:32px; margin-top:4px}
+  .step-title .h-sub{max-width:56ch}
+
+  /* Checklist de documentos */
+  .doc-list{display:flex; flex-direction:column; gap:12px; margin-top:14px}
+  .doc{
+    display:grid; grid-template-columns:40px 1fr auto; gap:14px; align-items:start;
+    background:var(--white); border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:14px 16px;
+  }
+  .doc .ico{
+    width:40px; height:40px; border-radius:12px; background:var(--info-bg); color:var(--teal);
+    display:grid; place-items:center; flex:0 0 auto;
+  }
+  .doc h3{font-family:var(--sans); font-size:14.5px; font-weight:600}
+  .doc p{font-size:13px; color:var(--ink-dim); margin-top:2px}
+  .doc .chip{margin-top:3px}
+
+  /* Seguimiento "Lo está gestionando Kórtex" */
+  .track .step .body{padding-top:3px}
+  .track .step h3{font-family:var(--sans); font-size:14.5px; font-weight:600; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .track .step p{font-size:13px; color:var(--ink-dim); margin-top:2px; max-width:52ch}
+  .track .step--active .dot{animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(15,61,53,.18)} 50%{box-shadow:0 0 0 7px rgba(15,61,53,.06)}}
+
+  /* Teaser del paso 7 con Hugo asomando */
+  .teaser{
+    position:relative; overflow:hidden; background:linear-gradient(120deg, var(--info-bg), var(--paper) 68%);
+    border:1px solid var(--line); border-radius:var(--r-lg); box-shadow:var(--shadow);
+    padding:24px 26px; min-height:168px;
+  }
+  .teaser .mascot{
+    position:absolute; right:-38px; bottom:-52px; width:220px; pointer-events:none;
+    filter:drop-shadow(0 12px 24px rgba(10,31,46,.14));
+  }
+  .teaser h3{font-family:var(--serif); font-weight:400; font-size:23px; margin-top:6px}
+  .teaser p{font-size:13.5px; color:var(--ink-dim); margin-top:5px; max-width:58%}
+
+  /* Barra de acciones fija abajo */
+  .wiz-actions{
+    position:fixed; bottom:0; left:0; right:0; z-index:40;
+    background:var(--paper); border-top:1px solid var(--line);
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+  }
+  .wiz-actions .inner{
+    max-width:720px; margin:0 auto; display:flex; align-items:center; gap:12px; justify-content:space-between;
+  }
+  .wiz-actions .hint{font-size:13px; color:var(--ink-dim); flex:1; min-width:0}
+  .btn[disabled], .btn[aria-disabled="true"]{opacity:.45; cursor:not-allowed; pointer-events:none}
+
+  /* Responsive: móvil primero */
+  @media (max-width:640px){
+    .wizard{padding:20px 14px 170px}
+    .step-title h1{font-size:26px}
+    .wsteps{grid-template-columns:repeat(8,1fr); padding:14px 6px 10px; gap:0}
+    .wstep .lbl{display:none}
+    .wstep--active .lbl{display:block; position:absolute; top:38px; width:max-content; max-width:90px; left:50%; transform:translateX(-50%)}
+    .wsteps{padding-bottom:34px}
+    .wstep .dot{width:26px; height:26px; font-size:11px}
+    .wstep:not(:last-child)::before{top:13px; left:calc(50% + 15px); right:calc(-50% + 15px)}
+    .doc{grid-template-columns:40px 1fr}
+    .doc .chip{grid-column:2}
+    .teaser p{max-width:100%; padding-right:70px}
+    .teaser .mascot{width:170px; right:-34px; bottom:-40px}
+    .wiz-actions .inner{flex-wrap:wrap}
+    .wiz-actions .hint{order:3; flex-basis:100%}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+
+<!-- Progreso global del alta: 4 de 8 -->
+<div class="global-progress" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del alta: 50 por ciento">
+  <i></i>
+</div>
+
+<div class="wizard">
+
+  <!-- Cabecera -->
+  <header class="wiz-head">
+    <div>
+      <div class="logo">Kórtex<em>.</em></div>
+    </div>
+    <div class="where">
+      <p class="k-label k-label--teal">Alta de tu clínica</p>
+      <p class="k-time">Paso 4 de 8 · Todo lo que haces queda guardado</p>
+    </div>
+  </header>
+
+  <!-- Stepper de los 8 pasos -->
+  <nav class="wsteps" aria-label="Pasos del alta">
+    <div class="wstep wstep--done" aria-label="Paso 1 completado: Datos de la clínica">
+      <span class="dot" aria-hidden="true">✓</span>
+      <span class="lbl">Datos de la clínica</span>
+    </div>
+    <div class="wstep wstep--done" aria-label="Paso 2 completado: Contrato de protección de datos">
+      <span class="dot" aria-hidden="true">✓</span>
+      <span class="lbl">Contrato de datos</span>
+    </div>
+    <div class="wstep wstep--done" aria-label="Paso 3 completado: Plan y agentes">
+      <span class="dot" aria-hidden="true">✓</span>
+      <span class="lbl">Plan y agentes</span>
+    </div>
+    <div class="wstep wstep--active" aria-current="step">
+      <span class="dot">4</span>
+      <span class="lbl">Conectar WhatsApp</span>
+    </div>
+    <div class="wstep">
+      <span class="dot">5</span>
+      <span class="lbl">Calendario</span>
+    </div>
+    <div class="wstep">
+      <span class="dot">6</span>
+      <span class="lbl">Horarios y tarifas</span>
+    </div>
+    <div class="wstep">
+      <span class="dot">7</span>
+      <span class="lbl">Llama a tu agente</span>
+    </div>
+    <div class="wstep">
+      <span class="dot">8</span>
+      <span class="lbl">Activación supervisada</span>
+    </div>
+  </nav>
+
+  <!-- Titular del paso -->
+  <section class="step-title" aria-label="Paso 4: Conectar WhatsApp">
+    <p class="k-label">Paso 4 · Conectar WhatsApp</p>
+    <h1>Tu número de siempre, con superpoderes</h1>
+    <p class="h-sub">Conectamos el WhatsApp de Clínica Dental Aurora para que Hugo pueda atender a tus pacientes. No cambias de número ni pierdes nada.</p>
+  </section>
+
+  <div class="banner banner--ok mt-16" role="status">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto; margin-top:1px"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+    <span>Tu WhatsApp seguirá funcionando en tu móvil como siempre. El agente atiende por detrás.</span>
+  </div>
+
+  <!-- Checklist de documentos -->
+  <section class="card card--lg mt-24" aria-label="Documentos que pedirá Meta">
+    <div class="card-title">
+      <span class="k-label">Lo que Meta pedirá para verificar tu clínica</span>
+      <span class="chip chip--ok">3 de 3 recibidos</span>
+    </div>
+    <p class="muted" style="font-size:13.5px">Meta (la empresa de WhatsApp) comprueba que tu clínica es real. Ya nos has enviado los 3 documentos. Los revisamos antes de enviarlos para evitar rechazos.</p>
+
+    <div class="doc-list">
+      <div class="doc">
+        <span class="ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M8 10h8M8 14h5"/></svg>
+        </span>
+        <div>
+          <h3>Tarjeta del CIF</h3>
+          <p>La tarjeta de identificación fiscal de la sociedad. Vale una foto nítida o el PDF de Hacienda.</p>
+        </div>
+        <span class="chip chip--ok">Recibida</span>
+      </div>
+      <div class="doc">
+        <span class="ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6V3Z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg>
+        </span>
+        <div>
+          <h3>Certificado del registro</h3>
+          <p>El certificado del Registro Mercantil donde consta el nombre legal completo de la sociedad.</p>
+        </div>
+        <span class="chip chip--ok">Recibido</span>
+      </div>
+      <div class="doc">
+        <span class="ico" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16l-3-2-3 2-3-2-3 2-3-2Z"/><path d="M8 8h8M8 12h5"/></svg>
+        </span>
+        <div>
+          <h3>Factura reciente con la dirección</h3>
+          <p>Una factura de luz, agua o teléfono de los últimos 3 meses, a nombre de la clínica y con la dirección de calle Doctor Esquerdo 84.</p>
+        </div>
+        <span class="chip chip--ok">Recibida</span>
+      </div>
+    </div>
+
+    <div class="banner banner--warn mt-16" role="note">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto; margin-top:1px"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+      <span><strong>El error más común:</strong> el nombre debe coincidir EXACTO con tu registro. Si tu escritura dice "Clínica Dental Aurora, S.L.P.", escribe eso, no "Clinica Aurora". Ya lo hemos comprobado por ti.</span>
+    </div>
+  </section>
+
+  <!-- Estado: lo gestiona Kórtex -->
+  <section class="card card--lg mt-16" aria-label="Seguimiento de la verificación">
+    <div class="card-title">
+      <span class="k-label">Seguimiento de la verificación</span>
+      <span class="chip chip--info">Lo está gestionando Kórtex</span>
+    </div>
+    <p class="muted" style="font-size:13.5px; margin-bottom:6px">Este papeleo lo hacemos nosotros por ti. No tienes que hacer nada: te avisaremos aquí y por correo en cuanto Meta apruebe el número.</p>
+
+    <div class="stepper track">
+      <div class="step step--done">
+        <span class="dot" aria-hidden="true">✓</span>
+        <div class="body">
+          <h3>Documentos recibidos <span class="k-time">Lunes 20 · 17:32</span></h3>
+          <p>Revisamos los 3 documentos y el nombre legal coincide con tu registro.</p>
+        </div>
+      </div>
+      <div class="step step--done">
+        <span class="dot" aria-hidden="true">✓</span>
+        <div class="body">
+          <h3>Enviado a Meta <span class="k-time">Hoy · 09:15</span></h3>
+          <p>Tu solicitud ya está en la cola de verificación de Meta.</p>
+        </div>
+      </div>
+      <div class="step step--active">
+        <span class="dot">3</span>
+        <div class="body">
+          <h3>En revisión <span class="chip chip--info">1 a 3 días laborables</span></h3>
+          <p>Meta comprueba los datos. Es su plazo habitual, no depende de nosotros ni de ti. Mientras tanto puedes seguir con los pasos 5 y 6.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Teaser del paso 7 -->
+  <section class="teaser mt-24" aria-label="Vista previa del paso 7">
+    <img class="mascot" src="assets/mascotas/hugo-720.webp" alt="Hugo, agente de captación y recepción">
+    <p class="k-label k-label--teal">Muy pronto · Paso 7</p>
+    <h3>Llama tú a tu agente</h3>
+    <p>Te daremos un número de prueba para que hables con Hugo antes de activarlo. Pregúntale por precios, horarios o cómo llegar: compruébalo tú misma.</p>
+  </section>
+
+</div>
+
+<!-- Acciones del paso -->
+<footer class="wiz-actions" aria-label="Acciones del paso">
+  <div class="inner">
+    <button class="btn btn--ghost" type="button">Guardar y seguir después</button>
+    <p class="hint">Podrás continuar cuando Meta apruebe tu número. Te avisaremos por correo y por WhatsApp.</p>
+    <button class="btn btn--primary" type="button" disabled aria-disabled="true">Continuar</button>
+  </div>
+</footer>
+
+</body>
+</html>

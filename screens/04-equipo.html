@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Mi equipo</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Mi equipo */
+  .team-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:22px}
+  .team-grid .olmo-band{grid-column:1/-1}
+  @media (max-width:980px){ .team-grid{grid-template-columns:1fr} }
+
+  .agent-card .chips-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:4px}
+  .agent-card .open-link{
+    position:absolute; inset:0; z-index:1; border-radius:var(--r-lg);
+    text-indent:-9999px; overflow:hidden;
+  }
+  .agent-card--locked .mission{max-width:56%}
+  .agent-card--locked .plan-note{
+    font-size:13px; color:var(--ink-dim); border-top:1px dashed var(--line);
+    padding-top:10px; margin-top:auto; max-width:62%;
+  }
+  .agent-card--locked .plan-note strong{color:var(--teal)}
+
+  /* Sección de ampliación */
+  .expand-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap}
+  .expand-head p{color:var(--ink-dim); font-size:14px}
+
+  /* Ficha expandida de Leo */
+  .ficha{margin-top:22px}
+  .ficha-head{display:flex; align-items:center; gap:16px; margin-bottom:18px; flex-wrap:wrap}
+  .ficha-head .avatar{width:52px; height:52px}
+  .ficha-head h2{font-size:26px}
+  .ficha-head .sub{font-size:13.5px; color:var(--ink-dim)}
+  .ficha-grid{display:grid; grid-template-columns:1.25fr 1fr; gap:18px; align-items:start}
+  @media (max-width:980px){ .ficha-grid{grid-template-columns:1fr} }
+
+  /* Gráfica simple de barras CSS (8 semanas) */
+  .mini-chart{display:grid; grid-template-columns:repeat(8,1fr); gap:10px; align-items:end; height:150px; margin-top:16px; padding:0 4px}
+  .mini-chart .col{display:flex; flex-direction:column; align-items:center; gap:7px; height:100%; justify-content:flex-end}
+  .mini-chart .stick{width:100%; max-width:38px; background:var(--mint); border-radius:9px 9px 5px 5px; position:relative}
+  .mini-chart .col.now .stick{background:var(--teal)}
+  .mini-chart .val{font-family:var(--serif); font-style:italic; font-size:14px; color:var(--teal); line-height:1}
+  .mini-chart .wk{font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink); white-space:nowrap}
+  .chart-foot{margin-top:14px; font-size:13px; color:var(--ink-dim); border-top:1px solid var(--line); padding-top:12px}
+
+  /* Bloque de pausa */
+  .pause-box{display:flex; gap:16px; align-items:flex-start; margin-top:16px; padding:16px; background:var(--white); border:1px solid var(--line); border-radius:var(--r-sm)}
+  .pause-box .toggle{flex:0 0 auto; margin-top:2px; cursor:pointer; padding:0; appearance:none; -webkit-appearance:none}
+  /* Zona táctil ampliada del interruptor (objetivo mínimo 44px) */
+  .pause-box .toggle::before{content:""; position:absolute; inset:-8px}
+  .pause-box h4{font-size:14.5px; margin-bottom:3px}
+  .pause-box p{font-size:13px; color:var(--ink-dim)}
+
+  /* Demo del modal al final: backdrop estático dentro del flujo */
+  .modal-demo{position:relative; margin-top:26px; border-radius:var(--r-lg); overflow:hidden; min-height:340px}
+  .modal-demo .modal-backdrop{position:absolute; inset:0; border-radius:var(--r-lg)}
+  .demo-note{font-family:var(--mono); font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--teal); margin:26px 0 10px}
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Mi equipo · 4 agentes en activo</p>
+        <h1>Tu equipo de agentes</h1>
+        <p class="h-sub">Cada uno tiene una misión y te entrega un resultado concreto. Todo lo delicado pasa por tu equipo.</p>
+      </div>
+      <a class="btn btn--secondary" href="10-configuracion-agente.html">Ajustar cómo trabajan</a>
+    </header>
+
+    <!-- ===== Agentes contratados ===== -->
+    <section aria-label="Agentes contratados">
+      <div class="team-grid">
+
+        <!-- Hugo -->
+        <article class="agent-card">
+          <span class="badge-state">Activo</span>
+          <img class="mascot" src="assets/mascotas/hugo-720.webp" alt="">
+          <span class="role">Captación y recepción</span>
+          <h2 class="name">Hugo</h2>
+          <p class="mission">Que ninguna llamada ni consulta se quede sin respuesta, a cualquier hora.</p>
+          <div class="metric">
+            <b>98%</b>
+            <span>de las consultas respondidas al momento este mes</span>
+          </div>
+          <p class="deliver"><strong>Te entrega:</strong> primeras visitas agendadas, listas en tu agenda.</p>
+          <a class="open-link" href="#ficha-leo">Ver la ficha de Hugo (en este prototipo se muestra la de Leo como ejemplo)</a>
+        </article>
+
+        <!-- Nora -->
+        <article class="agent-card">
+          <span class="badge-state badge-state--supervised">Propone, tu equipo aprueba</span>
+          <img class="mascot" src="assets/mascotas/nora-720.webp" alt="">
+          <span class="role">Presupuestos</span>
+          <h2 class="name">Nora</h2>
+          <p class="mission">Hace seguimiento de cada presupuesto entregado para que ninguno caiga en el olvido.</p>
+          <div class="metric">
+            <b>96%</b>
+            <span>de los presupuestos con seguimiento hecho a tiempo</span>
+          </div>
+          <p class="deliver"><strong>Te entrega:</strong> presupuestos que no se enfrían y avisos cuando alguien quiere dar el paso.</p>
+          <a class="open-link" href="#ficha-leo">Ver la ficha de Nora (en este prototipo se muestra la de Leo como ejemplo)</a>
+        </article>
+
+        <!-- Leo -->
+        <article class="agent-card">
+          <span class="badge-state">Activo</span>
+          <img class="mascot" src="assets/mascotas/leo-720.webp" alt="">
+          <span class="role">Revisiones y recordatorios</span>
+          <h2 class="name">Leo</h2>
+          <p class="mission">Recuerda cada cita y cada revisión pendiente, y recupera los huecos que se cancelan.</p>
+          <div class="metric">
+            <b>22</b>
+            <span>recordatorios enviados al día, de media este mes</span>
+          </div>
+          <p class="deliver"><strong>Te entrega:</strong> la agenda confirmada cada mañana antes de abrir.</p>
+          <a class="open-link" href="#ficha-leo">Ver la ficha de Leo</a>
+        </article>
+
+        <!-- Olmo, banda propia de coordinador -->
+        <section class="olmo-band" aria-label="Olmo, coordinador del equipo">
+          <img class="mascot" src="assets/mascotas/olmo-720.webp" alt="Olmo, agente coordinador">
+          <div class="body">
+            <span class="k-label" style="color:rgba(255,255,255,.7)">Coordinador</span>
+            <h3>Olmo coordina a todo el equipo</h3>
+            <p>Reúne el trabajo de Hugo, Nora y Leo y te lo cuenta cada viernes a las 09:00 por WhatsApp.</p>
+          </div>
+          <a class="btn" href="09-informe-olmo.html">Ver el último informe</a>
+        </section>
+      </div>
+    </section>
+
+    <!-- ===== Amplía tu equipo ===== -->
+    <section class="mt-32" aria-label="Amplía tu equipo">
+      <div class="expand-head">
+        <h2>Amplía tu equipo</h2>
+        <p>Agentes disponibles al ampliar tu plan. Sin permanencia añadida.</p>
+      </div>
+      <div class="team-grid" style="margin-top:16px">
+
+        <!-- Darío bloqueado -->
+        <article class="agent-card agent-card--locked">
+          <span class="lock" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          </span>
+          <img class="mascot" src="assets/mascotas/dario-720.webp" alt="">
+          <span class="role">Contenido y reseñas</span>
+          <h2 class="name">Darío</h2>
+          <p class="mission">Prepara contenido para las redes de tu clínica: casos, consejos y novedades, siempre con tu aprobación.</p>
+          <p class="plan-note"><strong>Disponible al ampliar tu plan.</strong> Pide una demostración y te lo enseñamos con tu propia clínica.</p>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ===== Ficha expandida de Leo ===== -->
+    <section class="card card--lg ficha" id="ficha-leo" aria-label="Ficha de Leo">
+      <div class="ficha-head">
+        <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>
+        <div>
+          <h2>Ficha de Leo</h2>
+          <p class="sub">Revisiones y recordatorios · Activo desde el 2 de mayo</p>
+        </div>
+        <div class="row" style="margin-left:auto; gap:10px">
+          <span class="badge-state" style="position:static">Activo</span>
+          <a class="btn btn--secondary btn--sm" href="10-configuracion-agente.html">Ajustar cómo trabaja Leo</a>
+        </div>
+      </div>
+
+      <div class="ficha-grid">
+        <!-- Métrica en el tiempo -->
+        <div>
+          <div class="card-title" style="margin-bottom:4px">
+            <span class="k-label">Recordatorios al día · últimas 8 semanas</span>
+            <span class="chip chip--ok">Al alza</span>
+          </div>
+          <div class="mini-chart" role="img" aria-label="Gráfica de barras: media de recordatorios enviados al día durante las últimas 8 semanas, de 14 a 22">
+            <div class="col"><span class="val">14</span><span class="stick" style="height:52%"></span><span class="wk">S 22</span></div>
+            <div class="col"><span class="val">15</span><span class="stick" style="height:56%"></span><span class="wk">S 23</span></div>
+            <div class="col"><span class="val">17</span><span class="stick" style="height:64%"></span><span class="wk">S 24</span></div>
+            <div class="col"><span class="val">16</span><span class="stick" style="height:60%"></span><span class="wk">S 25</span></div>
+            <div class="col"><span class="val">19</span><span class="stick" style="height:72%"></span><span class="wk">S 26</span></div>
+            <div class="col"><span class="val">20</span><span class="stick" style="height:76%"></span><span class="wk">S 27</span></div>
+            <div class="col"><span class="val">21</span><span class="stick" style="height:80%"></span><span class="wk">S 28</span></div>
+            <div class="col now"><span class="val">22</span><span class="stick" style="height:85%"></span><span class="wk">Esta</span></div>
+          </div>
+          <p class="chart-foot">Media diaria de recordatorios enviados por semana. La cifra crece porque en junio activaste también los recordatorios de higiene.</p>
+
+          <!-- Pausa con explicación clara -->
+          <div class="pause-box">
+            <button class="toggle on" role="switch" aria-checked="true" aria-label="Leo está activo. Pulsa para pausarlo"></button>
+            <div>
+              <h4>Leo está trabajando</h4>
+              <p>Si pausas a Leo, los recordatorios pendientes de mañana no se enviarán; las llamadas seguirán entrando a recepción. Te pediremos confirmación antes de pausarlo.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actividad reciente de Leo -->
+        <div>
+          <div class="card-title" style="margin-bottom:4px">
+            <span class="k-label">Su actividad reciente</span>
+            <a href="03-conversacion.html" style="font-size:13px">Ver todas</a>
+          </div>
+          <div class="feed">
+            <div class="feed-item">
+              <span class="k-time">10:31</span>
+              <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>
+              <p class="txt"><span class="who">Leo</span> · Recordatorio de higiene respondido <span class="arrow">→</span> cita confirmada por la paciente</p>
+              <span class="chip chip--ok">Confirmada</span>
+            </div>
+            <div class="feed-item">
+              <span class="k-time">09:47</span>
+              <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>
+              <p class="txt"><span class="who">Leo</span> · Cancelación de las 12:30 <span class="arrow">→</span> hueco ofrecido a 4 personas de la lista de espera</p>
+              <span class="chip chip--ok">Hueco recuperado</span>
+            </div>
+            <div class="feed-item">
+              <span class="k-time">08:58</span>
+              <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt=""></span>
+              <p class="txt"><span class="who">Leo</span> · 14 recordatorios de cita enviados por WhatsApp <span class="arrow">→</span> 11 confirmadas ya, 1 duda pasada a Lucía</p>
+              <span class="chip chip--warn">Escalado al equipo</span>
+            </div>
+          </div>
+          <div class="banner banner--info mt-16">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="flex:0 0 auto; margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 11v5"/></svg>
+            <p>Leo siempre se presenta como asistente de inteligencia artificial y nunca comunica datos de salud; eso lo hace tu personal.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Demo del modal de confirmación de pausa ===== -->
+    <p class="demo-note">Ejemplo · Confirmación al pausar un agente</p>
+    <section class="modal-demo" aria-label="Ejemplo de confirmación de pausa">
+      <div class="modal-backdrop">
+        <div class="modal" role="alertdialog" aria-labelledby="pausa-titulo" aria-describedby="pausa-texto">
+          <h3 id="pausa-titulo">¿Pausar a Leo?</h3>
+          <p id="pausa-texto">Los recordatorios pendientes de mañana no se enviarán y los huecos por cancelación dejarán de ofrecerse. Las llamadas seguirán entrando a recepción con normalidad. Puedes reactivarlo cuando quieras desde esta misma ficha.</p>
+          <div class="actions">
+            <button class="btn btn--ghost">Cancelar</button>
+            <button class="btn btn--danger">Pausar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html" class="active">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kórtex · Centro de Operaciones · Conversaciones</title>
+
+<link href="fuentes.css" rel="stylesheet">
+<link rel="stylesheet" href="kortex-ds.css">
+<style>
+  /* Estilos propios de la pantalla Conversaciones */
+
+  /* Maestro-detalle: 38% lista, 62% detalle */
+  .conv-layout{display:grid; grid-template-columns:38fr 62fr; gap:18px; align-items:start}
+  @media (max-width:980px){ .conv-layout{grid-template-columns:1fr} }
+
+  /* ---- Columna izquierda: lista ---- */
+  .conv-list{padding:0; overflow:hidden}
+  .conv-filters{padding:18px 18px 14px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:12px}
+  .filter-chips{display:flex; gap:8px; flex-wrap:wrap}
+  .filter-chips button{
+    display:inline-flex; align-items:center; gap:7px;
+    border:1px solid var(--line); background:var(--white); border-radius:999px;
+    padding:8px 14px; min-height:36px; font-size:12.5px; font-weight:600; color:var(--ink-dim);
+  }
+  .filter-chips button svg{opacity:.8}
+  .filter-chips button.active{background:var(--teal); color:#fff; border-color:var(--teal)}
+  .filter-selects{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px}
+  @media (max-width:1180px){ .filter-selects{grid-template-columns:1fr 1fr} }
+  .filter-selects select{
+    border:1px solid var(--line); background:var(--white); border-radius:var(--r-sm);
+    padding:9px 10px; min-height:40px; font-size:13px; font-family:var(--sans); color:var(--ink); width:100%;
+  }
+
+  .day-label{padding:12px 18px 6px; display:block}
+
+  .conv-row{
+    display:grid; grid-template-columns:44px 22px 34px 1fr; gap:10px; align-items:center;
+    padding:13px 18px; border-bottom:1px solid var(--line);
+    text-decoration:none; color:var(--ink); min-height:64px;
+  }
+  .conv-row:hover{background:rgba(15,61,53,.04)}
+  .conv-row .ch{color:var(--ink-dim); display:grid; place-items:center}
+  .conv-row .c-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .conv-row .c-top strong{font-size:14px}
+  .conv-row .c-top .chip{margin-left:auto; font-size:11.5px; padding:3px 10px}
+  .conv-row .c-sum{font-size:13px; color:var(--ink-dim); margin-top:2px;
+    display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden}
+  .conv-row--active{background:var(--info-bg); border-left:4px solid var(--teal); padding-left:14px}
+  .conv-row--active:hover{background:var(--info-bg)}
+  .verif{display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%;
+    background:var(--ok-bg); color:var(--ok-ink); flex:0 0 auto}
+  .anon{font-weight:500; color:var(--ink-dim); font-style:italic}
+  .conv-foot{padding:14px 18px; text-align:center}
+  .conv-foot a{font-size:13.5px}
+
+  /* ---- Columna derecha: detalle ---- */
+  .detail-head{position:relative; overflow:hidden; padding-bottom:26px}
+  .detail-head .mascot{
+    position:absolute; right:-30px; bottom:-52px; width:190px; pointer-events:none;
+    filter:drop-shadow(0 12px 24px rgba(10,31,46,.14));
+  }
+  .detail-head .inner{max-width:72%; position:relative; z-index:1}
+  @media (max-width:1240px){ .detail-head .inner{max-width:64%} }
+  .detail-head h2{font-size:26px; margin-top:4px}
+  .detail-head .meta{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:4px; font-size:13.5px; color:var(--ink-dim)}
+  .legal-chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px}
+  .detail-actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px}
+
+  /* Panel lateral del detalle: se apila por defecto, lado a lado en pantallas anchas */
+  .detail-cols{display:grid; grid-template-columns:1fr; gap:18px; margin-top:18px; align-items:start}
+  @media (min-width:1500px){ .detail-cols{grid-template-columns:1.55fr 1fr} }
+
+  .speaker{font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-dim); display:block; margin-bottom:3px}
+  .turn--agent .speaker{color:var(--teal)}
+  .sync-hint{display:flex; align-items:center; gap:8px; margin-top:14px; font-size:12.5px; color:var(--ink-dim)}
+  .sync-hint .dot{width:8px; height:8px; border-radius:50%; background:var(--teal)}
+  .player .t{font-family:var(--mono); font-size:11.5px; color:var(--ink-dim); white-space:nowrap}
+
+  /* Panel: resumen, datos, acciones */
+  .panel-sec{padding-top:16px; margin-top:16px; border-top:1px solid var(--line)}
+  .panel-sec:first-of-type{padding-top:0; margin-top:12px; border-top:none}
+  .data-list{display:grid; grid-template-columns:auto 1fr; gap:7px 14px; font-size:14px; margin-top:10px}
+  .data-list dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-dim); align-self:center; white-space:nowrap}
+  .data-list dd{margin:0}
+  .action-item{display:grid; grid-template-columns:46px 1fr auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px dashed var(--line); font-size:14px}
+  .action-item:last-child{border-bottom:none}
+  .panel-btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
+
+  @media (max-width:980px){
+    .detail-head .inner{max-width:100%}
+    .detail-head .mascot{width:140px; right:-26px; bottom:-40px; opacity:.9}
+    .detail-head h2{font-size:23px}
+  }
+</style>
+</head>
+<body data-vertical="dental">
+<div class="app">
+
+  <!-- ===== Barra lateral ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Kórtex<em>.</em></div>
+      <div class="tag">Centro de Operaciones</div>
+    </div>
+    <nav class="nav" aria-label="Navegación principal">
+      <a href="01-inicio.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        Inicio</a>
+      <a href="04-equipo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+        Mi equipo</a>
+      <a href="03-conversacion.html" class="active" aria-current="page">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+        Conversaciones</a>
+      <a href="02-cola-revision.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+        Cola de revisión <span class="count">3</span></a>
+      <a href="06-agenda.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Agenda</a>
+      <a href="08-cumplimiento.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.4 7 10 3.6-1.6 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4.5"/></svg>
+        Cumplimiento</a>
+      <a href="07-consumo.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19a8.5 8.5 0 1 1 16 0"/><path d="M12 13.5 15.5 9"/></svg>
+        Consumo y plan</a>
+      <a href="06b-integraciones.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0V7Z"/><path d="M12 17v4"/></svg>
+        Conexiones</a>
+      <a href="11-ajustes-clinica.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.15-1.44l2.1-1.62-2-3.46-2.47 1a7 7 0 0 0-2.5-1.45L13.5 2h-3l-.48 2.6a7 7 0 0 0-2.5 1.45l-2.47-1-2 3.46 2.1 1.62A7 7 0 0 0 5 12c0 .49.05.97.15 1.44l-2.1 1.62 2 3.46 2.47-1a7 7 0 0 0 2.5 1.45L10.5 22h3l.48-2.6a7 7 0 0 0 2.5-1.45l2.47 1 2-3.46-2.1-1.62c.1-.47.15-.95.15-1.44Z"/></svg>
+        Ajustes</a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar-user" aria-hidden="true">MA</div>
+      <div>
+        <div class="clinic">Clínica Dental Aurora</div>
+        <div class="who">Marta Andrés · Gerente</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== Contenido ===== -->
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <p class="k-label k-label--teal">Hoy, martes 21 de julio</p>
+        <h1>Conversaciones</h1>
+        <p class="h-sub">Todo lo que tus agentes han dicho y hecho, con su grabación, su transcripción y su resultado.</p>
+      </div>
+      <button class="btn btn--human" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1-3.6 3.8-5.4 7-5.4s6 1.8 7 5.4"/></svg>
+        Hablar con una persona
+      </button>
+    </header>
+
+    <div class="conv-layout">
+
+      <!-- ===== Lista de interacciones ===== -->
+      <section class="card conv-list" aria-label="Lista de interacciones">
+        <div class="conv-filters">
+          <div class="filter-chips" role="group" aria-label="Filtrar por canal">
+            <button class="active" type="button" aria-pressed="true">Todos</button>
+            <button type="button" aria-pressed="false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>
+              Llamadas</button>
+            <button type="button" aria-pressed="false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+              WhatsApp</button>
+            <button type="button" aria-pressed="false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 7 9 6 9-6"/></svg>
+              Email</button>
+          </div>
+          <div class="filter-selects">
+            <label>
+              <span class="k-label" style="display:block; margin-bottom:5px">Agente</span>
+              <select aria-label="Filtrar por agente">
+                <option>Todos</option><option>Hugo</option><option>Nora</option><option>Leo</option><option>Olmo</option>
+              </select>
+            </label>
+            <label>
+              <span class="k-label" style="display:block; margin-bottom:5px">Resultado</span>
+              <select aria-label="Filtrar por resultado">
+                <option>Todos</option><option>Cita creada</option><option>Transferida</option><option>Perdida</option><option>Pendiente</option>
+              </select>
+            </label>
+            <label>
+              <span class="k-label" style="display:block; margin-bottom:5px">Fecha</span>
+              <select aria-label="Filtrar por fecha">
+                <option>Hoy</option><option>Ayer</option><option>Últimos 7 días</option><option>Este mes</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <span class="k-label day-label">Hoy · Martes 21</span>
+
+        <a class="conv-row" href="#detalle">
+          <span class="k-time">10:52</span>
+          <span class="ch" title="Llamada" role="img" aria-label="Canal: llamada"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt="Hugo"></span>
+          <span class="c-main">
+            <span class="c-top"><strong>Carmen R.</strong>
+              <span class="verif" role="img" aria-label="Identidad verificada"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg></span>
+              <span class="chip chip--urgent">Urgencia</span></span>
+            <span class="c-sum">Posible urgencia por dolor e hinchazón, aviso inmediato al equipo de guardia</span>
+          </span>
+        </a>
+
+        <a class="conv-row conv-row--active" href="#detalle" aria-current="true">
+          <span class="k-time">10:42</span>
+          <span class="ch" title="Llamada" role="img" aria-label="Canal: llamada"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt="Hugo"></span>
+          <span class="c-main">
+            <span class="c-top"><strong>María G.</strong>
+              <span class="verif" role="img" aria-label="Identidad verificada"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg></span>
+              <span class="chip chip--ok">Cita creada</span></span>
+            <span class="c-sum">Primera visita agendada, jueves 23 a las 12:00 con la Dra. Riera</span>
+          </span>
+        </a>
+
+        <a class="conv-row" href="#detalle">
+          <span class="k-time">10:31</span>
+          <span class="ch" title="WhatsApp" role="img" aria-label="Canal: WhatsApp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt="Leo"></span>
+          <span class="c-main">
+            <span class="c-top"><strong>Carmen R.</strong>
+              <span class="verif" role="img" aria-label="Identidad verificada"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg></span>
+              <span class="chip chip--ok">Confirmada</span></span>
+            <span class="c-sum">Recordatorio de higiene respondido, cita del miércoles confirmada</span>
+          </span>
+        </a>
+
+        <a class="conv-row" href="#detalle">
+          <span class="k-time">10:18</span>
+          <span class="ch" title="WhatsApp" role="img" aria-label="Canal: WhatsApp"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/nora-360.webp" alt="Nora"></span>
+          <span class="c-main">
+            <span class="c-top"><strong>Javier O.</strong>
+              <span class="verif" role="img" aria-label="Identidad verificada"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg></span>
+              <span class="chip chip--ok">Seguimiento hecho</span></span>
+            <span class="c-sum">Presupuesto enviado hace 7 días, recordatorio amable enviado</span>
+          </span>
+        </a>
+
+        <a class="conv-row" href="#detalle">
+          <span class="k-time">09:47</span>
+          <span class="ch" title="Llamada" role="img" aria-label="Canal: llamada"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/leo-360.webp" alt="Leo"></span>
+          <span class="c-main">
+            <span class="c-top"><strong>Rocío M.</strong>
+              <span class="verif" role="img" aria-label="Identidad verificada"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg></span>
+              <span class="chip chip--ok">Hueco recuperado</span></span>
+            <span class="c-sum">Aceptó el hueco de las 12:30 que quedó libre por cancelación</span>
+          </span>
+        </a>
+
+        <a class="conv-row" href="#detalle">
+          <span class="k-time">09:35</span>
+          <span class="ch" title="Email" role="img" aria-label="Canal: email"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 7 9 6 9-6"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt="Hugo"></span>
+          <span class="c-main">
+            <span class="c-top"><span class="anon">No identificado</span>
+              <span class="chip chip--info">Pendiente</span></span>
+            <span class="c-sum">Consulta desde la web respondida, a la espera de elegir hora</span>
+          </span>
+        </a>
+
+        <a class="conv-row" href="#detalle">
+          <span class="k-time">09:12</span>
+          <span class="ch" title="Llamada" role="img" aria-label="Canal: llamada"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/nora-360.webp" alt="Nora"></span>
+          <span class="c-main">
+            <span class="c-top"><strong>Sergio L.</strong>
+              <span class="verif" role="img" aria-label="Identidad verificada"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg></span>
+              <span class="chip chip--ok">Cita creada</span></span>
+            <span class="c-sum">Quiere avanzar con su tratamiento, llamada con el equipo mañana 9:30</span>
+          </span>
+        </a>
+
+        <a class="conv-row" href="#detalle">
+          <span class="k-time">08:54</span>
+          <span class="ch" title="Llamada" role="img" aria-label="Canal: llamada"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt="Hugo"></span>
+          <span class="c-main">
+            <span class="c-top"><strong>Rosa I.</strong>
+              <span class="verif" role="img" aria-label="Identidad verificada"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg></span>
+              <span class="chip chip--warn">Transferida</span></span>
+            <span class="c-sum">Dudas de financiación, pasada a una persona del equipo con resumen</span>
+          </span>
+        </a>
+
+        <span class="k-label day-label">Ayer · Lunes 20</span>
+
+        <a class="conv-row" href="#detalle">
+          <span class="k-time">18:12</span>
+          <span class="ch" title="Email" role="img" aria-label="Canal: email"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 7 9 6 9-6"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/nora-360.webp" alt="Nora"></span>
+          <span class="c-main">
+            <span class="c-top"><strong>Lucía F.</strong>
+              <span class="verif" role="img" aria-label="Identidad verificada"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg></span>
+              <span class="chip chip--ok">Seguimiento hecho</span></span>
+            <span class="c-sum">Dudas sobre su presupuesto resueltas, pidió pensarlo unos días</span>
+          </span>
+        </a>
+
+        <a class="conv-row" href="#detalle" style="border-bottom:none">
+          <span class="k-time">17:40</span>
+          <span class="ch" title="Llamada" role="img" aria-label="Canal: llamada"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg></span>
+          <span class="avatar"><img src="assets/mascotas/hugo-360.webp" alt="Hugo"></span>
+          <span class="c-main">
+            <span class="c-top"><span class="anon">No identificado</span>
+              <span class="chip chip--neutral">Perdida</span></span>
+            <span class="c-sum">Colgó durante el saludo, se envió un WhatsApp ofreciendo ayuda</span>
+          </span>
+        </a>
+
+        <div class="conv-foot" style="border-top:1px solid var(--line)">
+          <a href="#">Ver días anteriores</a>
+        </div>
+      </section>
+
+      <!-- ===== Detalle de la llamada ===== -->
+      <section id="detalle" aria-label="Detalle de la conversación seleccionada">
+
+        <!-- Cabecera del detalle -->
+        <div class="card card--lg detail-head">
+          <img class="mascot" src="assets/mascotas/hugo-720.webp" alt="Hugo, agente de captación y recepción">
+          <div class="inner">
+            <span class="k-label k-label--teal">Llamada · Hoy 10:42 · Atendida por Hugo</span>
+            <h2>María García Peña</h2>
+            <p class="meta">
+              <span>617 442 882</span> · <span>Duración <strong>3:12</strong></span> · <span>Ficha ···4523K</span>
+            </p>
+            <div class="legal-chips" aria-label="Garantías de esta conversación">
+              <span class="chip chip--ok">Identidad verificada: nombre + 2 datos de ficha</span>
+              <span class="chip chip--info">Se presentó como IA al inicio</span>
+              <span class="chip chip--info">Grabación informada</span>
+            </div>
+            <div class="detail-actions">
+              <button class="btn btn--human btn--sm" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>
+                Llamar yo a María</button>
+              <a class="btn btn--ghost btn--sm" href="06-agenda.html">Ver su cita en la agenda</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-cols">
+
+          <!-- Grabación y transcripción -->
+          <div class="card card--lg" aria-label="Grabación y transcripción">
+            <div class="card-title">
+              <span class="k-label">Grabación y transcripción</span>
+              <span class="k-time">3:12 min</span>
+            </div>
+
+            <div class="player" aria-label="Reproductor de la llamada">
+              <button class="play" type="button" aria-label="Reproducir grabación">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5Z"/></svg>
+              </button>
+              <span class="t">2:12</span>
+              <div class="wave" role="progressbar" aria-valuenow="69" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso de la grabación: 2 minutos 12 segundos de 3 minutos 12 segundos"></div>
+              <span class="t">3:12</span>
+            </div>
+
+            <div class="transcript">
+              <div class="turn turn--agent">
+                <span class="speaker">Hugo · Asistente IA</span>
+                <span class="k-time">00:02</span>
+                Clínica Dental Aurora, buenos días. Soy Hugo, el asistente virtual de la clínica. Soy una inteligencia artificial y esta llamada queda grabada para su seguridad. ¿En qué puedo ayudarle?
+              </div>
+              <div class="turn turn--caller">
+                <span class="speaker">María G.</span>
+                <span class="k-time">00:16</span>
+                Hola, buenas. Quería pedir una primera visita, llevo unos días con molestias en una muela. Soy María García, nací el 12 de mayo del 86 y llamo desde mi móvil de siempre. Creo que ya tienen mi ficha.
+              </div>
+              <div class="turn turn--agent">
+                <span class="speaker">Hugo · Asistente IA</span>
+                <span class="k-time">00:34</span>
+                Gracias, María. Coinciden su nombre, su fecha de nacimiento y el número desde el que llama, así que ya tengo su ficha verificada. Para una primera visita de valoración tengo dos huecos con la Dra. Riera: el jueves 23 a las 12:00 o el viernes 24 a las 9:30. ¿Cuál le viene mejor?
+              </div>
+              <div class="turn turn--caller">
+                <span class="speaker">María G.</span>
+                <span class="k-time">01:58</span>
+                El jueves a las 12:00 me viene genial.
+              </div>
+              <div class="turn turn--agent turn--current" aria-current="true">
+                <span class="speaker">Hugo · Asistente IA</span>
+                <span class="k-time">02:12</span>
+                Le confirmo: primera visita el jueves 23 a las 12:00 con la Dra. Riera, ¿es correcto?
+              </div>
+              <div class="turn turn--caller">
+                <span class="speaker">María G.</span>
+                <span class="k-time">02:24</span>
+                Sí, correcto. Muchas gracias.
+              </div>
+              <div class="turn turn--agent">
+                <span class="speaker">Hugo · Asistente IA</span>
+                <span class="k-time">02:31</span>
+                Gracias a usted, María. Ahora mismo le llega la confirmación por WhatsApp con la dirección de la clínica y un recordatorio el día antes. Que se mejore, hasta el jueves.
+              </div>
+            </div>
+
+            <p class="sync-hint"><span class="dot" aria-hidden="true"></span> La transcripción se ilumina al ritmo del audio. Toca una frase para saltar a ese momento.</p>
+          </div>
+
+          <!-- Panel lateral del detalle -->
+          <aside class="card card--lg" aria-label="Resumen y acciones de la conversación">
+            <div class="card-title"><span class="k-label">Qué ha pasado</span></div>
+
+            <div class="panel-sec">
+              <span class="k-label">Resumen</span>
+              <p style="font-size:14.5px; margin-top:8px">María llamó con molestias en una muela y pidió una primera visita. Hugo verificó su ficha, le ofreció dos huecos reales de la agenda y cerró la cita con la Dra. Riera. La confirmación salió por WhatsApp al momento.</p>
+            </div>
+
+            <div class="panel-sec">
+              <span class="k-label">Intención detectada</span>
+              <p class="mt-8"><span class="chip chip--info">Primera visita</span></p>
+            </div>
+
+            <div class="panel-sec">
+              <span class="k-label">Datos capturados</span>
+              <dl class="data-list">
+                <dt>Nombre</dt><dd>María García Peña</dd>
+                <dt>Teléfono</dt><dd>617 442 882</dd>
+                <dt>Motivo</dt><dd>Molestias en una muela</dd>
+              </dl>
+            </div>
+
+            <div class="panel-sec">
+              <span class="k-label">Acciones ejecutadas</span>
+              <div class="mt-8">
+                <div class="action-item">
+                  <span class="k-time">10:44</span>
+                  <span>Cita creada en la agenda</span>
+                  <span class="chip chip--ok">Hecho</span>
+                </div>
+                <div class="action-item">
+                  <span class="k-time">10:45</span>
+                  <span>Confirmación enviada por WhatsApp</span>
+                  <span class="chip chip--ok">Hecho</span>
+                </div>
+              </div>
+              <p class="muted mt-8" style="font-size:12.5px">No hizo falta pasar la llamada a una persona.</p>
+            </div>
+
+            <div class="panel-btns">
+              <button class="btn btn--secondary btn--sm" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 8-3 8H5l3-8-3-8Z"/></svg>
+                Marcar para revisión</button>
+              <button class="btn btn--ghost btn--sm" type="button" onclick="document.getElementById('modal-nota').style.display='grid'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20v-4L15.5 4.5a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L8 20H4Z"/></svg>
+                Añadir nota</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- ===== Modal: añadir nota ===== -->
+<div class="modal-backdrop" id="modal-nota" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-nota-titulo">
+  <div class="modal">
+    <h3 id="modal-nota-titulo">Añadir una nota a esta conversación</h3>
+    <p>La verá tu equipo junto a la llamada de María G. de las 10:42. No se comparte con la paciente.</p>
+    <div class="field">
+      <label for="nota-texto">Nota</label>
+      <textarea class="input" id="nota-texto" rows="3" placeholder="Ej.: avisar a la Dra. Riera de que viene con molestias desde hace días"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn btn--ghost" type="button" onclick="document.getElementById('modal-nota').style.display='none'">Cancelar</button>
+      <button class="btn btn--primary" type="button" onclick="document.getElementById('modal-nota').style.display='none'">Guardar la nota</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Barra inferior móvil ===== -->
+<nav class="tabbar" aria-label="Navegación móvil">
+  <a href="01-inicio.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</a>
+  <a href="02-cola-revision.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 6h14l2 7v6H3v-6l2-7Z"/></svg>
+    Cola<span class="count">3</span></a>
+  <a href="03-conversacion.html" class="active">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.5-3A8 8 0 1 1 21 12Z"/></svg>
+    Chats</a>
+  <a href="04-equipo.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.8c2.6-.4 4.6 1 5.2 3.7"/></svg>
+    Equipo</a>
+</nav>
+</body>
+</html>
