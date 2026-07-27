@@ -6,7 +6,7 @@ Kórtex installs and operates AI agents for Spanish healthcare centers (radiolog
 
 Mission Control is the SaaS panel where clinic staff see and steer what their agents do. This repo documents its design and current state of development.
 
-**Status: in active development, roughly 63% built.** The design phase is done (23 screens, all in this repo). The panel application itself is being built on top of it; the agents already run in service mode without the self-service panel.
+**Status: product design complete; application in development.** The design phase is done (23 screens, all in this repo). The panel application itself is being built on top of it, and the first agents go live with the first client deployments.
 
 ---
 
